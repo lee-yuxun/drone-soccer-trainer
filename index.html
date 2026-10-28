@@ -1,0 +1,1711 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drone Soccer Trainer V6 WebGL 3D</title>
+<style>
+:root{--bg:#071019;--panel:#0d1721;--text:#f4f7fb;--muted:#9db0c3;--line:#284056;--red:#ff545c;--blue:#4da3ff;--gold:#ffd166;--green:#4ad886}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:linear-gradient(180deg,#06101a,#09131d);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif}
+button,select,input{font:inherit}
+#app{height:100%;max-width:1560px;margin:auto;padding:8px;display:flex;flex-direction:column;overflow:hidden}
+.header{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px;flex:0 0 auto}
+.brand h1{margin:0;font-size:21px}.brand .sub{color:var(--muted);font-size:12px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button,.btn{border:1px solid #31506b;background:#132433;color:#fff;border-radius:9px;padding:8px 11px;cursor:pointer}
+.tabs button.active,.btn.primary{background:#eef5fc;color:#07111a;font-weight:800}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:10px}
+.card{background:rgba(12,22,32,.97);border:1px solid #22394c;border-radius:12px;overflow:hidden;min-height:0}
+.stagebar{padding:8px 11px;border-bottom:1px solid #22394c;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+#viewport{position:relative;height:100%;min-height:0;background:#08131d;overflow:hidden}
+#viewport canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;left:10px;top:10px;background:rgba(3,10,15,.70);border:1px solid rgba(180,210,230,.25);border-radius:10px;padding:8px;pointer-events:none;min-width:180px}
+.hud div{font-size:12px;line-height:1.55}.hud b{float:right;margin-left:14px}
+.crosshair{position:absolute;left:50%;top:50%;width:18px;height:18px;transform:translate(-50%,-50%);display:none;pointer-events:none}
+.crosshair:before,.crosshair:after{content:"";position:absolute;background:rgba(255,255,255,.8)}
+.crosshair:before{width:18px;height:1px;top:8px}.crosshair:after{width:1px;height:18px;left:8px}
+.centermsg{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:rgba(3,10,15,.75);padding:6px 10px;border-radius:8px;border:1px solid rgba(180,210,230,.22);font-size:12px;max-width:84%;text-align:center}
+.side{padding:8px;display:flex;flex-direction:column;gap:6px;overflow:hidden}.section{background:#0a131c;border:1px solid #233a4e;border-radius:9px;padding:7px;margin:0;flex:0 0 auto}.section h3{font-size:12px;margin:0 0 5px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.metric{background:#101e2b;border-radius:7px;padding:5px}.metric span{display:block;color:var(--muted);font-size:9px}.metric b{font-size:14px}
+.row{display:flex;align-items:center;gap:6px;margin:3px 0}.row label{font-size:10px;color:#d5e0ea;flex:1}.row input[type=range]{width:120px}
+.switch{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.switch button{border:1px solid #35506a;background:#101e2b;color:#bfd0df;padding:7px;border-radius:7px;cursor:pointer}.switch button.on{background:#edf5fc;color:#07111a;font-weight:800}
+.small{font-size:10px;color:var(--muted);line-height:1.35}.kbd{display:inline-block;border:1px solid #48627b;background:#172737;border-radius:4px;padding:0 4px;color:#e7f0f8}
+.levels{max-height:140px;overflow:auto}.level{display:block;width:100%;text-align:left;background:#101d29;color:#fff;border:1px solid #284058;border-radius:7px;padding:6px 7px;margin:3px 0;cursor:pointer}.level.sel{outline:2px solid var(--gold)}
+.statusdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#c94d4d;margin-right:5px}.statusdot.ok{background:#4ad886}
+
+.controllerBtn{border:1px solid #31506b;background:#132433;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px}
+.controllerModal{position:absolute;right:10px;top:10px;width:min(390px,calc(100% - 20px));max-height:calc(100% - 20px);overflow:auto;background:rgba(7,15,23,.97);border:1px solid #35506a;border-radius:12px;padding:11px;z-index:20;display:none}
+.controllerModal.open{display:block}.controllerHead{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}.controllerHead h3{margin:0;font-size:14px}.controllerStatus{font-size:11px;color:var(--muted);padding:6px 8px;background:#101e2b;border-radius:7px;margin-bottom:8px}.mapGrid{display:grid;grid-template-columns:76px 1fr 66px;gap:5px;align-items:center;font-size:11px}.mapGrid select{min-width:0;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:6px;padding:5px}.axisLive{display:grid;grid-template-columns:58px 1fr 42px;gap:5px;align-items:center;margin:4px 0;font-size:11px}.axisTrack{height:8px;background:#1b2b39;border-radius:99px;position:relative;overflow:hidden}.axisTrack i{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#7890a4}.axisTrack b{position:absolute;top:1px;height:6px;background:#8fd7a6;border-radius:99px}.controllerActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.controllerActions button{flex:1;min-width:110px}.inputBadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}.inputBadge i{width:7px;height:7px;border-radius:50%;background:#65788a}.inputBadge.connected i{background:#4ad886}
+@media(max-width:1050px){html,body{overflow:auto}#app{height:auto;overflow:visible}.layout{grid-template-columns:1fr;overflow:visible}.side{order:-1;overflow:visible}#viewport{height:520px}.row input[type=range]{width:42%}}
+
+/* V12 training layout fixes */
+body.training-mode .section.training-hide{display:none!important}
+body.training-mode .side{overflow:hidden!important}
+body.training-mode #academyPanel{display:flex!important;flex-direction:column;min-height:0;flex:1}
+body.training-mode #academyPanel .levels{max-height:none!important;flex:1;min-height:120px;overflow:auto}
+body.training-mode #taskBox{max-height:180px;overflow:auto}
+body.training-mode .layout{grid-template-columns:minmax(0,1fr) 360px}
+body.training-mode #viewport{min-height:0;height:calc(100vh - 96px);max-height:calc(100vh - 96px)}
+body.training-mode .card.side{height:calc(100vh - 96px);display:flex;flex-direction:column}
+body.training-mode .stagebar{padding:5px 9px}
+body.training-mode .hud{top:6px;left:6px;padding:6px;min-width:165px;font-size:11px}
+body.training-mode .centermsg{bottom:8px;padding:5px 8px;font-size:11px}
+
+.controllerBtn{border:1px solid #31506b;background:#132433;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px}
+.controllerModal{position:absolute;right:10px;top:10px;width:min(390px,calc(100% - 20px));max-height:calc(100% - 20px);overflow:auto;background:rgba(7,15,23,.97);border:1px solid #35506a;border-radius:12px;padding:11px;z-index:20;display:none}
+.controllerModal.open{display:block}.controllerHead{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}.controllerHead h3{margin:0;font-size:14px}.controllerStatus{font-size:11px;color:var(--muted);padding:6px 8px;background:#101e2b;border-radius:7px;margin-bottom:8px}.mapGrid{display:grid;grid-template-columns:76px 1fr 66px;gap:5px;align-items:center;font-size:11px}.mapGrid select{min-width:0;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:6px;padding:5px}.axisLive{display:grid;grid-template-columns:58px 1fr 42px;gap:5px;align-items:center;margin:4px 0;font-size:11px}.axisTrack{height:8px;background:#1b2b39;border-radius:99px;position:relative;overflow:hidden}.axisTrack i{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#7890a4}.axisTrack b{position:absolute;top:1px;height:6px;background:#8fd7a6;border-radius:99px}.controllerActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.controllerActions button{flex:1;min-width:110px}.inputBadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}.inputBadge i{width:7px;height:7px;border-radius:50%;background:#65788a}.inputBadge.connected i{background:#4ad886}
+@media(max-width:1050px){body.training-mode #viewport{height:auto;max-height:none}body.training-mode .card.side{height:auto}}
+
+
+body.training-mode #academyPanel h3{margin-bottom:5px}
+body.training-mode #academyPanel select{flex:0 0 auto}
+body.training-mode #loadLevel{flex:0 0 auto}
+
+
+/* V13 collapsible sidebar */
+#sidePanel details.uiFold{
+  border:1px solid #263a4c;
+  border-radius:10px;
+  background:rgba(10,22,34,.78);
+  margin:6px 0;
+  overflow:hidden;
+}
+#sidePanel details.uiFold > summary{
+  cursor:pointer;
+  user-select:none;
+  list-style:none;
+  padding:8px 10px;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+#sidePanel details.uiFold > summary::-webkit-details-marker{display:none}
+#sidePanel details.uiFold > summary::after{
+  content:"＋";
+  font-size:15px;
+  opacity:.75;
+}
+#sidePanel details.uiFold[open] > summary::after{content:"－"}
+#sidePanel details.uiFold > .foldBody{padding:0 10px 10px}
+#sidePanel details.uiFold:not([open]) > .foldBody{display:none}
+#sidePanel .foldAlwaysOpen{margin-top:6px}
+
+
+/* V13.1 — scoreboard always visible, controls tucked into one fold */
+#sidePanel .scoreAlwaysVisible{
+  position:sticky;
+  top:0;
+  z-index:8;
+  background:#08131e;
+  padding:4px 0 6px;
+}
+#sidePanel details.masterSettingsFold{
+  border:1px solid #29465d;
+  border-radius:12px;
+  background:rgba(8,20,31,.94);
+  margin:7px 0;
+  overflow:hidden;
+}
+#sidePanel details.masterSettingsFold > summary{
+  cursor:pointer;
+  user-select:none;
+  list-style:none;
+  min-height:44px;
+  padding:9px 12px;
+  font-weight:900;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+#sidePanel details.masterSettingsFold > summary::-webkit-details-marker{display:none}
+#sidePanel details.masterSettingsFold > summary::after{content:"＋ 展開";font-size:12px;opacity:.72}
+#sidePanel details.masterSettingsFold[open] > summary::after{content:"－ 收合"}
+#sidePanel .masterSettingsBody{padding:0 8px 8px}
+#sidePanel .masterSettingsBody > details.uiFold{margin:6px 0}
+
+
+/* V13.2 true compact sidebar */
+#sidePanel .compactScoreShell{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+#sidePanel .compactResetRow{
+  display:flex;
+  gap:8px;
+}
+#sidePanel .compactResetRow button{
+  width:100%;
+  min-height:42px;
+  font-weight:900;
+}
+#sidePanel details.settingsDrawer{
+  border:1px solid #29465d;
+  border-radius:12px;
+  background:rgba(8,20,31,.94);
+  overflow:hidden;
+}
+#sidePanel details.settingsDrawer > summary{
+  cursor:pointer;
+  user-select:none;
+  list-style:none;
+  padding:10px 12px;
+  min-height:44px;
+  font-weight:900;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+#sidePanel details.settingsDrawer > summary::-webkit-details-marker{display:none}
+#sidePanel details.settingsDrawer > summary::after{content:"＋";opacity:.7}
+#sidePanel details.settingsDrawer[open] > summary::after{content:"－"}
+#sidePanel .settingsDrawerBody{
+  padding:0 8px 8px;
+}
+
+
+/* V13.4 controller settings reorganization */
+#controllerModal .controllerSubsection{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid #29465d;
+}
+#controllerModal .controllerSubsection h3{
+  margin:0 0 7px;
+  font-size:14px;
+}
+#controllerModal .controllerSubsection .section{
+  border:0;
+  padding:0;
+  margin:0;
+  background:transparent;
+}
+#controllerModal .controllerSubsection .section > h3{
+  display:none;
+}
+
+
+/* V13.7 reset placement + shortcut */
+.resetShortcutHint{
+  font-size:11px;
+  opacity:.72;
+  margin-top:3px;
+}
+
+</style>
+
+<style>
+.layout>.card:first-child{display:flex;flex-direction:column;min-height:0}
+.stagebar{flex:0 0 auto;padding:6px 9px}
+.layout>.card:first-child #viewport{flex:1 1 auto}
+.tabs button,.btn{padding:6px 9px;font-size:11px}
+.brand h1{font-size:18px}.brand .sub{font-size:10px}
+.switch button,.cameraSwitch button{padding:5px;font-size:10px}
+.taskbox{padding:6px;margin-top:5px}
+.hud{padding:6px;min-width:165px}.hud div{font-size:10px;line-height:1.4}
+.centermsg{bottom:8px;padding:5px 8px;font-size:10px}
+#academyPanel{min-height:0}
+#academyPanel .levels{max-height:115px}
+#academyPanel .taskbox{max-height:95px;overflow:auto}
+.compact-scroll{overflow:auto;min-height:0}
+
+/* V12 training layout fixes */
+body.training-mode .section.training-hide{display:none!important}
+body.training-mode .side{overflow:hidden!important}
+body.training-mode #academyPanel{display:flex!important;flex-direction:column;min-height:0;flex:1}
+body.training-mode #academyPanel .levels{max-height:none!important;flex:1;min-height:120px;overflow:auto}
+body.training-mode #taskBox{max-height:180px;overflow:auto}
+body.training-mode .layout{grid-template-columns:minmax(0,1fr) 360px}
+body.training-mode #viewport{min-height:0;height:calc(100vh - 96px);max-height:calc(100vh - 96px)}
+body.training-mode .card.side{height:calc(100vh - 96px);display:flex;flex-direction:column}
+body.training-mode .stagebar{padding:5px 9px}
+body.training-mode .hud{top:6px;left:6px;padding:6px;min-width:165px;font-size:11px}
+body.training-mode .centermsg{bottom:8px;padding:5px 8px;font-size:11px}
+
+.controllerBtn{border:1px solid #31506b;background:#132433;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px}
+.controllerModal{position:absolute;right:10px;top:10px;width:min(390px,calc(100% - 20px));max-height:calc(100% - 20px);overflow:auto;background:rgba(7,15,23,.97);border:1px solid #35506a;border-radius:12px;padding:11px;z-index:20;display:none}
+.controllerModal.open{display:block}.controllerHead{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}.controllerHead h3{margin:0;font-size:14px}.controllerStatus{font-size:11px;color:var(--muted);padding:6px 8px;background:#101e2b;border-radius:7px;margin-bottom:8px}.mapGrid{display:grid;grid-template-columns:76px 1fr 66px;gap:5px;align-items:center;font-size:11px}.mapGrid select{min-width:0;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:6px;padding:5px}.axisLive{display:grid;grid-template-columns:58px 1fr 42px;gap:5px;align-items:center;margin:4px 0;font-size:11px}.axisTrack{height:8px;background:#1b2b39;border-radius:99px;position:relative;overflow:hidden}.axisTrack i{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#7890a4}.axisTrack b{position:absolute;top:1px;height:6px;background:#8fd7a6;border-radius:99px}.controllerActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.controllerActions button{flex:1;min-width:110px}.inputBadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}.inputBadge i{width:7px;height:7px;border-radius:50%;background:#65788a}.inputBadge.connected i{background:#4ad886}
+@media(max-width:1050px){body.training-mode #viewport{height:auto;max-height:none}body.training-mode .card.side{height:auto}}
+
+
+body.training-mode #academyPanel h3{margin-bottom:5px}
+body.training-mode #academyPanel select{flex:0 0 auto}
+body.training-mode #loadLevel{flex:0 0 auto}
+
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="brand">
+      <h1>DRONE SOCCER TRAINER <span style="font-size:11px;color:#9db0c3">V13.5</span></h1>
+      
+    </div>
+    <div class="tabs">
+      <button id="tabFree" class="active">自由模式</button>
+      <button id="tabMatch">3v3 比賽</button>
+      <button id="tabAcademy">30級訓練</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="card">
+      <div class="stagebar">
+        <div><b id="modeName">自由模式</b> <span id="modeDesc" class="small">3D 自由飛行與碰撞練習</span></div><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span id="inputBadge" class="inputBadge"><i></i><span id="inputLabel">鍵盤控制</span></span><button id="controllerBtn" class="controllerBtn" type="button">FPV 遙控器設定</button><span class="small">C 鍵輪切視角</span></div>
+        <div>
+          <button id="thirdBtn" class="btn primary">第三人稱</button>
+          <button id="fpvBtn" class="btn">FPV 第一人稱</button>
+          <button id="pilotBtn" class="btn">場外飛手</button>
+        </div>
+      </div>
+      <div id="viewport" tabindex="0">
+        <div id="loading" style="padding:20px;color:#c9d7e4">正在載入 WebGL 3D 引擎…</div>
+        <div id="controllerModal" class="controllerModal" role="dialog" aria-label="FPV 遙控器設定">
+  <div class="controllerHead"><h3>外接 FPV 遙控器</h3><button id="controllerClose" class="btn" type="button">關閉</button></div>
+  <div id="gamepadStatus" class="controllerStatus">尚未偵測到 USB 遙控器。請接上遙控器並撥動搖桿或按任意按鍵。</div>
+  <div class="small" style="margin-bottom:7px">支援能以 USB HID / Gamepad 形式被瀏覽器辨識的 FPV 遙控器。預設採 Mode 2：左手 Throttle/Yaw、右手 Pitch/Roll。若瀏覽器無法偵測，請改用 HTTPS 或 localhost 開啟本頁。</div>
+  <div class="mapGrid">
+    <b>通道</b><b>軸向</b><b>反向</b>
+    <span>Roll</span><select id="mapRoll"></select><label><input id="revRoll" type="checkbox"> REV</label>
+    <span>Pitch</span><select id="mapPitch"></select><label><input id="revPitch" type="checkbox" checked> REV</label>
+    <span>Yaw</span><select id="mapYaw"></select><label><input id="revYaw" type="checkbox" checked> REV</label>
+    <span>Throttle</span><select id="mapThrottle"></select><label><input id="revThrottle" type="checkbox" checked> REV</label>
+  </div>
+  <div class="row" style="margin-top:7px"><label>Deadband <span id="deadzoneTxt">0.08</span></label><input id="radioDeadzone" type="range" min="0" max="0.25" step="0.01" value="0.08"></div>
+  <div class="row"><label>Arm 按鍵</label><select id="armButton" style="width:145px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:6px;padding:5px"><option value="-1">不設定</option></select></div>
+  <div class="small" style="margin:7px 0 4px">即時通道</div>
+  <div id="axisMonitor"></div>
+  <div class="controllerActions"><button id="centerCalBtn" class="btn" type="button">中心校正</button><button id="mode2Btn" class="btn primary" type="button">套用 Mode 2 預設</button></div>
+  <div id="calInfo" class="small" style="margin-top:6px">中心校正會記錄目前四軸中心值；Throttle 若使用無彈簧油門，可保留預設中心 0。</div>
+</div>
+<div class="hud" id="hud" style="display:none">
+          <div>高度 <b id="hudAlt">1.50 m</b></div>
+          <div>速度 <b id="hudSpeed">0.00 m/s</b></div>
+          <div>Yaw <b id="hudYaw">0°</b></div>
+          <div>模式 <b id="hudMode">LEVEL</b></div>
+          <div>耐久 <b id="hudHealth">100%</b></div>
+          <div>角色 <b id="hudRole">ATTACKER</b></div>
+          <div>場地 <b>6×3×4 m</b></div>
+          <div>機體 <b>Ø 0.20 m</b></div>
+          <div>視角 <b id="hudCamera">THIRD</b></div>
+        </div>
+        <div class="crosshair" id="crosshair"></div>
+        <div class="centermsg" id="status">載入中…</div>
+      </div>
+    </div>
+
+    <aside class="card side compact-scroll">
+      <div class="section training-hide">
+        <h3>飛行模式</h3>
+        <div class="switch">
+          <button data-fmode="level" class="on">LEVEL</button>
+          <button data-fmode="angle">ANGLE</button>
+          <button data-fmode="acro">ACRO</button>
+        </div>
+      </div>
+
+      <div class="section training-hide">
+        <h3>3D 碰撞設定</h3>
+        <div class="row"><label>無人機互撞</label><input id="droneCollision" type="checkbox" checked></div>
+        <div class="row"><label>球門環碰撞</label><input id="goalCollision" type="checkbox" checked></div>
+        <div class="row"><label>網籠碰撞</label><input id="cageCollision" type="checkbox" checked></div>
+        <div class="row"><label>高速撞擊 Auto Disarm</label><input id="autoDisarm" type="checkbox" checked></div>
+        <div class="row"><label>反彈 <span id="bounceTxt">0.52</span></label><input id="bounce" type="range" min="0" max="0.9" step=".02" value=".52"></div>
+        <div class="row"><label>碰撞傷害 <span id="damageTxt">1.0</span>x</label><input id="damage" type="range" min="0" max="2" step=".1" value="1"></div>
+      </div>
+
+      <div class="section training-hide">
+        <h3>操控參數</h3>
+        <div class="row"><label>水平加速度 <span id="accelTxt">5.0</span></label><input id="accel" type="range" min="2" max="10" step=".2" value="5"></div>
+        <div class="row"><label>垂直速度 <span id="verticalTxt">2.2</span></label><input id="vertical" type="range" min="1" max="5" step=".1" value="2.2"></div>
+        <div class="row"><label>Yaw Rate <span id="yawRateTxt">140</span>°/s</label><input id="yawRate" type="range" min="60" max="360" step="10" value="140"></div>
+        <button id="resetBtn" class="btn" style="width:100%">重置無人機</button>
+      </div>
+
+      <div class="section" id="matchPanel" style="display:none">
+        <h3>3v3 比賽</h3>
+        <div class="grid3">
+          <div class="metric"><span>RED</span><b id="redScore">0</b></div>
+          <div class="metric"><span>時間</span><b id="clock">03:00</b></div>
+          <div class="metric"><span>BLUE</span><b id="blueScore">0</b></div>
+        </div>
+        <div class="small" style="margin-top:6px">每隊 1 名進攻手＋ 2 名防守手，僅進攻手可得分。進球後必須自行飛回己方半場，完成回場後才能再次得分。</div>
+        <div class="row" style="margin-top:7px"><label>玩家角色</label><select id="roleSelect" style="width:165px;padding:7px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:7px"><option value="attacker">進攻手 Attacker</option><option value="defender">防守手 Defender</option></select></div>
+        <div class="row" style="margin-top:7px">
+          <label>電腦難度 <b id="aiDifficultyTxt">5</b> / 10</label>
+          <input id="aiDifficulty" type="range" min="1" max="10" step="1" value="5" style="width:165px">
+        </div>
+        <div class="small" id="aiDifficultyDesc" style="margin-top:3px">標準：平衡進攻、變線與防守預判。</div>
+        <button id="startMatch" class="btn primary" style="width:100%;margin-top:7px">開始單機 3 分鐘比賽</button>
+        <button id="openMulti" class="btn" style="width:100%;margin-top:6px">多人連線競賽</button>
+      </div>
+
+      <div class="section" id="academyPanel" style="display:none">
+        <h3>30級訓練</h3>
+        <select id="tier" style="width:100%;padding:7px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:7px">
+          <option value="bird">雛鳥級 1–10</option>
+          <option value="sparrow">麻雀級 11–20</option>
+          <option value="falcon">隼鷹級 21–30</option>
+        </select>
+        <div class="small" style="margin-top:6px">場地以空白網籠為基礎，再依訓練項目動態加入球門、角錐、航線與降落區。</div>
+        <div id="levels" class="levels"></div>
+        <button id="loadLevel" class="btn primary" style="width:100%;margin-top:6px">載入關卡</button>
+        <div id="taskBox" class="small" style="display:none;margin-top:8px;padding:8px;border:1px solid #29465d;border-radius:8px;background:#0e1b27"><b id="taskTitle" style="display:block;color:#fff;margin-bottom:4px"></b><div id="taskText"></div><div id="taskProgress" style="margin-top:4px;color:#9fe7b2"></div></div>
+      </div>
+
+      <div class="section" id="refPanel" style="display:none">
+        <h3>裁判 / 比賽狀態</h3>
+        <div class="grid3">
+          <div class="metric"><span>狀態</span><b id="refState">READY</b></div>
+          <div class="metric"><span>紅隊犯規</span><b id="redFouls">0</b></div>
+          <div class="metric"><span>藍隊犯規</span><b id="blueFouls">0</b></div>
+        </div>
+        <div class="small" id="refMessage" style="margin-top:6px">等待比賽開始</div>
+      </div>
+
+      <div class="section" id="scorePanel" style="display:none">
+        <h3>30級自動評分</h3>
+        <div class="grid3">
+          <div class="metric"><span>時間</span><b id="scoreTime">0.0s</b></div>
+          <div class="metric"><span>碰撞</span><b id="scoreHits">0</b></div>
+          <div class="metric"><span>最大偏移</span><b id="scoreDev">0cm</b></div>
+        </div>
+        <div class="grid3" style="margin-top:7px">
+          <div class="metric"><span>航線覆蓋</span><b id="scoreCover">0%</b></div>
+          <div class="metric"><span>安全</span><b id="scoreSafety">PASS</b></div>
+          <div class="metric"><span>結果</span><b id="scoreResult">進行中</b></div>
+        </div>
+      </div>
+
+<div class="section training-hide">
+        <h3>控制方式</h3>
+        <div class="small">
+          <span class="kbd">W/S</span> 前後　<span class="kbd">A/D</span> 左右<br>
+          <span class="kbd">↑/↓</span> 上升／下降　<span class="kbd">←/→</span> Yaw<br>
+          <span class="kbd">Space</span> Arm / Disarm　<span class="kbd">C</span> 切換視角　<span class="kbd">R</span> 重置<br><b>USB FPV 遙控器：</b>點「FPV 遙控器設定」完成軸向對應與校正
+        </div>
+      </div>
+      <div class="small"><span id="webglDot" class="statusdot"></span><span id="webglState">WebGL 尚未初始化</span></div>
+    </aside>
+  </div>
+</div>
+
+<div id="multiModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div style="width:min(780px,96vw);max-height:92vh;overflow:auto;background:#0b1520;border:1px solid #36506a;border-radius:14px;padding:14px;color:#f3f7fb">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+      <div><b style="font-size:18px">多人連線競賽</b><div class="small">瀏覽器 P2P 房間｜最多 6 人｜主機管理賽制</div></div>
+      <button id="closeMulti" class="btn">關閉</button>
+    </div>
+    <div class="grid3" style="margin-top:10px">
+      <button id="hostRoom" class="btn primary">建立房間</button>
+      <input id="roomCodeInput" placeholder="輸入房間碼" style="min-width:0;padding:8px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:8px;text-transform:uppercase">
+      <button id="joinRoom" class="btn">加入房間</button>
+    </div>
+    <div id="netStatus" class="small" style="margin-top:8px;padding:7px;border:1px solid #29465d;border-radius:8px">尚未連線</div>
+    <div class="grid3" style="margin-top:10px">
+      <div class="section" style="margin:0"><h3>我的設定</h3>
+        <div class="row"><label>顯示名稱</label><input id="playerName" value="Player" style="width:150px;padding:6px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:7px"></div>
+        <div class="row"><label>隊伍</label><select id="netTeam" style="width:150px;padding:6px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:7px"><option value="red">紅隊</option><option value="blue">藍隊</option></select></div>
+        <div class="row"><label>角色</label><select id="netRole" style="width:150px;padding:6px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:7px"><option id="netRoleAttacker" value="attacker">進攻（1席）</option><option id="netRoleDefender" value="defender">防守（2席）</option></select></div>
+      </div>
+      <div class="section" style="margin:0"><h3>系列賽設定</h3>
+        <div class="row"><label>對戰次數</label><select id="seriesBestOf" style="width:150px;padding:6px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:7px"><option value="1">BO1</option><option value="3" selected>BO3 / 3戰2勝</option><option value="5">BO5 / 5戰3勝</option><option value="7">BO7 / 7戰4勝</option></select></div>
+        <div class="row"><label>每局時間</label><select id="roundMinutes" style="width:150px;padding:6px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:7px"><option value="2">2 分鐘</option><option value="3" selected>3 分鐘</option><option value="4">4 分鐘</option><option value="5">5 分鐘</option></select></div>
+        <div class="row"><label>中場休息</label><select id="restMinutes" style="width:150px;padding:6px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:7px"><option value="2">2 分鐘</option><option value="3">3 分鐘</option><option value="4">4 分鐘</option><option value="5">5 分鐘</option></select></div>
+      </div>
+      <div class="section" style="margin:0"><h3>房間</h3>
+        <div class="small">房間碼</div><div id="roomCode" style="font-size:22px;font-weight:800;letter-spacing:2px">------</div>
+        <div class="small" style="margin-top:8px">系列賽</div><div id="seriesState" style="font-weight:700">尚未開始</div>
+      </div>
+    </div>
+    <div class="section" style="margin-top:10px"><h3>玩家名單</h3><div id="playerList" class="small">尚無玩家</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button id="readyBtn" class="btn">我已準備</button>
+      <button id="startSeries" class="btn primary" disabled>主機開始系列賽</button>
+    </div>
+    <div class="small" style="margin-top:8px">同一 Wi‑Fi 仍需先透過 PeerJS 信令服務找到主機。V12.8 修正連線隊伍顏色與即時犯規同步；正式 3v3 席位制：真人取代 AI，不會增加場上總數；開始比賽會自動關閉房間視窗並啟動計時/計分；請等主機顯示「房間已上線」後，再讓其他裝置加入。</div>
+  </div>
+</div>
+
+<div id="seriesOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:10000;align-items:center;justify-content:center;padding:18px">
+ <div style="width:min(700px,94vw);max-height:88vh;overflow:auto;background:#0b1520;border:1px solid #3b5873;border-radius:16px;padding:18px;color:#fff;text-align:center">
+   <div id="winnerTitle" style="font-size:28px;font-weight:900">RED TEAM WIN</div>
+   <div id="winnerSummary" class="small" style="margin-top:8px"></div>
+   <div id="roundHistory" style="margin:14px 0;text-align:left"></div><div id="seriesDroneStats" style="margin:12px 0;text-align:left"></div>
+   <button id="closeResult" class="btn primary">返回房間</button>
+ </div>
+</div>
+
+<script type="module">
+
+window.addEventListener('error',e=>{const msg=e?.message||'';if(msg.includes('ResizeObserver loop completed with undelivered notifications')||msg.includes('ResizeObserver loop limit exceeded')){e.preventDefault?.();return;}const el=document.getElementById('webglState');const st=document.getElementById('status');if(el)el.textContent='初始化錯誤：'+(msg||'未知錯誤');if(st)st.textContent='程式初始化失敗，請重新載入';});
+window.addEventListener('unhandledrejection',e=>{const el=document.getElementById('webglState');const st=document.getElementById('status');const msg=e.reason?.message||String(e.reason||'未知錯誤');if(el)el.textContent='載入錯誤：'+msg;if(st)st.textContent='3D 引擎或模組載入失敗';});
+let THREE;
+try { THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm'); }
+catch(err){ document.getElementById('loading').textContent='Three.js 載入失敗，請確認有網路後重新整理。'; throw err; }
+
+const viewport=document.getElementById('viewport');
+const loading=document.getElementById('loading');
+const status=document.getElementById('status');
+const hud=document.getElementById('hud');
+const crosshair=document.getElementById('crosshair');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x08131d);
+scene.fog=new THREE.Fog(0x08131d,8,18);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true; renderer.outputColorSpace=THREE.SRGBColorSpace;
+viewport.prepend(renderer.domElement);
+loading.remove(); hud.style.display='block'; webglDot.classList.add('ok'); webglState.textContent='WebGL 3D 已啟動';
+const camera=new THREE.PerspectiveCamera(70,16/9,.02,100); const clock3=new THREE.Clock();
+scene.add(new THREE.HemisphereLight(0xcfe8ff,0x16200f,1.7));
+const sun=new THREE.DirectionalLight(0xffffff,2.2); sun.position.set(4,8,3); sun.castShadow=true; scene.add(sun);
+const ARENA={L:6,W:3,H:4}, GOAL_R=.20, GOAL_TUBE=.025, GOAL_Y=2.0, DR=.10;
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(ARENA.L,ARENA.W), new THREE.MeshStandardMaterial({color:0x16384a,roughness:.88,metalness:.04}));
+floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+const centerLine=new THREE.Mesh(new THREE.BoxGeometry(.02,.01,ARENA.W), new THREE.MeshBasicMaterial({color:0x9cb4c7,transparent:true,opacity:.55})); centerLine.position.y=.006; scene.add(centerLine);
+const cageMat=new THREE.LineBasicMaterial({color:0xb7cad8,transparent:true,opacity:.35});const cageObjects=[];
+function edge(a,b){ const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]); const l=new THREE.Line(g,cageMat);scene.add(l);cageObjects.push(l);}
+function setArenaVisible(v){floor.visible=v;centerLine.visible=v;cageObjects.forEach(o=>o.visible=v)}
+const X=ARENA.L/2,Z=ARENA.W/2,Y=ARENA.H;
+[[[-X,0,-Z],[X,0,-Z]],[[-X,0,Z],[X,0,Z]],[[-X,Y,-Z],[X,Y,-Z]],[[-X,Y,Z],[X,Y,Z]],[[-X,0,-Z],[-X,0,Z]],[[X,0,-Z],[X,0,Z]],[[-X,Y,-Z],[-X,Y,Z]],[[X,Y,-Z],[X,Y,Z]],[[-X,0,-Z],[-X,Y,-Z]],[[X,0,-Z],[X,Y,-Z]],[[-X,0,Z],[-X,Y,Z]],[[X,0,Z],[X,Y,Z]]].forEach(e=>edge(e[0],e[1]));
+for(let ix=-3;ix<=3;ix+=.3){edge([ix,0,-1.5],[ix,4,-1.5]);edge([ix,0,1.5],[ix,4,1.5])}
+function makeGoal(side){ const group=new THREE.Group(); const tor=new THREE.Mesh(new THREE.TorusGeometry(GOAL_R,GOAL_TUBE,12,64), new THREE.MeshStandardMaterial({color:0xffd166,emissive:0x5b3b00,roughness:.45})); tor.rotation.y=Math.PI/2; tor.castShadow=true; group.add(tor); const gx=side==='red'?-2:2; group.position.set(gx,GOAL_Y,0); scene.add(group); return {group,center:new THREE.Vector3(gx,GOAL_Y,0),side}; }
+const goals=[makeGoal('red'),makeGoal('blue')];
+function makeDrone(color=0xff545c){ const group=new THREE.Group(); const cageMesh=new THREE.Mesh(new THREE.SphereGeometry(DR,20,14), new THREE.MeshStandardMaterial({color,wireframe:true,roughness:.4,metalness:.1,emissive:new THREE.Color(color).multiplyScalar(.12)})); group.add(cageMesh); const core=new THREE.Mesh(new THREE.BoxGeometry(.065,.025,.065), new THREE.MeshStandardMaterial({color:0x222a31,metalness:.5,roughness:.35})); group.add(core); const armMat=new THREE.MeshStandardMaterial({color:0xdde8ef,metalness:.3,roughness:.4}); [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>{ const arm=new THREE.Mesh(new THREE.BoxGeometry(.055,.008,.009),armMat); arm.position.set(sx*.028,0,sz*.028); arm.rotation.y=(sx===sz?Math.PI/4:-Math.PI/4); group.add(arm); const m=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.01,12),new THREE.MeshStandardMaterial({color:0x111820})); m.rotation.x=Math.PI/2; m.position.set(sx*.045,.005,sz*.045); group.add(m); }); const nose=new THREE.Mesh(new THREE.ConeGeometry(.012,.04,10), new THREE.MeshStandardMaterial({color:0xffffff})); nose.rotation.z=-Math.PI/2; nose.position.x=.07; group.add(nose); scene.add(group); return {group,cageMesh,vel:new THREE.Vector3(),yaw:0,health:100,hits:0,armed:false,team:'red',role:'attacker',radius:DR,retreatRequired:false,prevScoreX:group.position.x,illegalGoalCooldown:0}; }
+
+function updateTeamAppearance(d){
+  if(!d||!d.group)return;
+  let cage=d.cageMesh;
+  if(!cage){
+    cage=d.group.children.find(o=>o?.geometry?.type==='SphereGeometry')||null;
+    if(cage)d.cageMesh=cage;
+  }
+  if(!cage||!cage.material)return;
+  const color=d.team==='blue'?0x4da3ff:0xff545c;
+  cage.material.color.setHex(color);
+  if(cage.material.emissive)cage.material.emissive.setHex(color).multiplyScalar(.12);
+  cage.material.needsUpdate=true;
+}
+function updateRoleAppearance(d){
+  if(!d||!d.group)return;
+  if(d.roleRibbon){ d.group.remove(d.roleRibbon); d.roleRibbon.traverse?.(o=>{o.geometry?.dispose?.(); if(o.material){ if(Array.isArray(o.material))o.material.forEach(m=>m.dispose?.()); else o.material.dispose?.(); }}); d.roleRibbon=null; }
+  if(d.role!=='attacker')return;
+  const rg=new THREE.Group(); rg.name='attackerRibbon';
+  const mat=new THREE.MeshStandardMaterial({color:0xffd84d,emissive:0x6a4b00,metalness:.2,roughness:.35,transparent:true,opacity:.96});
+  const band1=new THREE.Mesh(new THREE.TorusGeometry(DR*.80,.013,10,48),mat.clone()); band1.rotation.y=Math.PI/2; rg.add(band1);
+  const band2=new THREE.Mesh(new THREE.TorusGeometry(DR*.80,.010,10,48),mat.clone()); band2.rotation.x=Math.PI/2; rg.add(band2);
+  const flag=new THREE.Mesh(new THREE.BoxGeometry(.055,.018,.006),new THREE.MeshStandardMaterial({color:0xfff3a0,emissive:0x5a4300})); flag.position.set(0,DR*.90,0); rg.add(flag);
+  d.group.add(rg); d.roleRibbon=rg;
+}
+function resetGoalPlaneTracking(){
+  const drones=[player,...ai,...remoteDrones.values()];
+  for(const d of drones){ if(!d?.group)continue; d.prevScoreX=d.group.position.x; d.prevOwnGoalX=d.group.position.x; d.illegalGoalCooldown=0; d.ownGoalFoulCooldown=0; d.pushedByAttackerUntil=0; }
+}
+const player=makeDrone(0xff545c); player.team='red'; player.role='attacker'; player.group.position.set(-1.4,1.1,0);
+updateRoleAppearance(player);
+const ai=[]; function makeAI(team,pos,role){ const d=makeDrone(team==='red'?0xff545c:0x4da3ff); d.team=team; d.role=role; d.group.position.copy(pos); d.defenderLaneZ=pos.z; d.defenderLaneY=pos.y; d.attackLane=(team==='red'?1:-1)*.62; updateRoleAppearance(d); return d; }
+function clearAI(){ while(ai.length){ const d=ai.pop(); scene.remove(d.group); } }
+function setupAI_base(){
+ clearAI();
+ if(player.role==='attacker'){
+   ai.push(makeAI('red',new THREE.Vector3(-1.85,1.1,-.55),'defender'));
+   ai.push(makeAI('red',new THREE.Vector3(-1.85,1.6,.55),'defender'));
+ }else{
+   ai.push(makeAI('red',new THREE.Vector3(-1.25,1.25,0),'attacker'));
+   ai.push(makeAI('red',new THREE.Vector3(-1.85,1.6,.55),'defender'));
+ }
+ ai.push(makeAI('blue',new THREE.Vector3(1.35,1.1,0),'attacker'));
+ ai.push(makeAI('blue',new THREE.Vector3(1.85,1.1,-.55),'defender'));
+ ai.push(makeAI('blue',new THREE.Vector3(1.85,1.6,.55),'defender'));
+ ai.forEach(d=>d.retreatRequired=false);
+}
+const trainingBaseGroup=new THREE.Group(); scene.add(trainingBaseGroup);
+function createTrainingBase(){const f=new THREE.Mesh(new THREE.PlaneGeometry(6,3),new THREE.MeshStandardMaterial({color:0x101c26,roughness:.95}));f.rotation.x=-Math.PI/2;trainingBaseGroup.add(f);const g=new THREE.GridHelper(6,12,0x314a5d,0x1b2a35);g.material.transparent=true;g.material.opacity=.18;trainingBaseGroup.add(g)}createTrainingBase();trainingBaseGroup.visible=false;
+const guideGroup=new THREE.Group(); scene.add(guideGroup);
+let guideSegments=[];
+let touchedGuideSegments=new Set();
+let progressGuideVisuals=new Map();
+function clearGuides(){ while(guideGroup.children.length) guideGroup.remove(guideGroup.children[0]); guideSegments=[]; touchedGuideSegments.clear(); progressGuideVisuals.clear(); }
+function subdivideGuide(points,step=.28){
+ const result=[];
+ for(let i=0;i<points.length-1;i++){
+   const a=points[i],b=points[i+1],dist=a.distanceTo(b),n=Math.max(1,Math.ceil(dist/step));
+   for(let j=0;j<n;j++){ const p0=a.clone().lerp(b,j/n),p1=a.clone().lerp(b,(j+1)/n); result.push([p0,p1]); }
+ }
+ return result;
+}
+function distancePointToSegment3D(p,a,b){
+ const ab=b.clone().sub(a),len2=ab.lengthSq(); if(len2<1e-8)return p.distanceTo(a);
+ const t=THREE.MathUtils.clamp(p.clone().sub(a).dot(ab)/len2,0,1);
+ return p.distanceTo(a.clone().addScaledVector(ab,t));
+}
+function updateGuideContact(){
+ if(!guideSegments.length)return {onLine:false,coverage:0};
+ let onLine=false; const tolerance=player.radius+.065;
+ guideSegments.forEach((seg,i)=>{
+   if(distancePointToSegment3D(player.group.position,seg[0],seg[1])<=tolerance){
+     onLine=true; touchedGuideSegments.add(i);
+     const visual=progressGuideVisuals.get(i);
+     if(visual && visual.material && visual.material.color) visual.material.color.setHex(0x4ad886);
+   }
+ });
+ return {onLine,coverage:touchedGuideSegments.size/guideSegments.length};
+}
+function addObj(o){ guideGroup.add(o); return o; }
+function addMarker(x,y,z,color=0x8ff0ff,size=.18){ const r=Math.max(.16,size); const s=new THREE.Mesh(new THREE.SphereGeometry(r,18,12),new THREE.MeshStandardMaterial({color,transparent:true,opacity:.24,emissive:new THREE.Color(color).multiplyScalar(.12),wireframe:true})); s.position.set(x,y,z); addObj(s); return s; }
+function addCheckpoint(x,y,z,color=0x9fffaa,r=.18){ const m=new THREE.Mesh(new THREE.SphereGeometry(r,18,12),new THREE.MeshStandardMaterial({color,transparent:true,opacity:.24,emissive:new THREE.Color(color).multiplyScalar(.12),wireframe:true}));m.position.set(x,y,z);addObj(m);return m;}
+function addLandingPad(x,y,z,size=.35){ const ring=new THREE.Mesh(new THREE.RingGeometry(size*.7,size,32), new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.set(x,y+.01,z); addObj(ring); }
+function addCone(x,y,z){ const c=new THREE.Mesh(new THREE.ConeGeometry(.07,.18,16), new THREE.MeshStandardMaterial({color:0xffa45e})); c.position.set(x,y,z); addObj(c); }
+function addGuideGoal(x,y,z,color=0x8ff0ff){ const g=new THREE.Mesh(new THREE.TorusGeometry(.2,.012,8,40), new THREE.MeshStandardMaterial({color,emissive:0x173d46})); g.rotation.y=Math.PI/2; g.position.set(x,y,z); addObj(g); }
+function addLine(points,color=0xb6c3cf){ const segs=subdivideGuide(points,.22); for(const seg of segs){ const idx=guideSegments.length; guideSegments.push(seg); const geo=new THREE.BufferGeometry().setFromPoints(seg); const line=new THREE.Line(geo,new THREE.LineDashedMaterial({color:0xb6c3cf,dashSize:.07,gapSize:.035})); line.computeLineDistances(); addObj(line); progressGuideVisuals.set(idx,line); } }
+function addSquarePath(cx,cz,w,d,h=1.2){ addLine([new THREE.Vector3(cx-w/2,h,cz-d/2),new THREE.Vector3(cx+w/2,h,cz-d/2),new THREE.Vector3(cx+w/2,h,cz+d/2),new THREE.Vector3(cx-w/2,h,cz+d/2),new THREE.Vector3(cx-w/2,h,cz-d/2)]); }
+function addXPath(cx,cz,span=2.2,h=1.2){ addLine([new THREE.Vector3(cx-span/2,h,cz-span/3),new THREE.Vector3(cx+span/2,h,cz+span/3)]); addLine([new THREE.Vector3(cx-span/2,h,cz+span/3),new THREE.Vector3(cx+span/2,h,cz-span/3)]); }
+function addStraightLine(x1,z1,x2,z2,h=1.2,color=0xffd166){ addLine([new THREE.Vector3(x1,h,z1), new THREE.Vector3(x2,h,z2)],color); }
+function addCirclePath(cx,cz,r,h=1.2,color=0xffd166){ const pts=[]; for(let t=0;t<=Math.PI*2+.05;t+=.1) pts.push(new THREE.Vector3(cx+Math.cos(t)*r,h,cz+Math.sin(t)*r)); addLine(pts,color); }
+function addProgressCirclePath(cx,cz,r,h=1.2,reverse=false){
+ const count=48;
+ for(let k=0;k<count;k++){
+   const a0=(reverse?-1:1)*(k/count)*Math.PI*2;
+   const a1=(reverse?-1:1)*((k+1)/count)*Math.PI*2;
+   const p0=new THREE.Vector3(cx+Math.cos(a0)*r,h,cz+Math.sin(a0)*r);
+   const p1=new THREE.Vector3(cx+Math.cos(a1)*r,h,cz+Math.sin(a1)*r);
+   const idx=guideSegments.length;
+   guideSegments.push([p0,p1]);
+   const geo=new THREE.BufferGeometry().setFromPoints([p0,p1]);
+   const line=new THREE.Line(geo,new THREE.LineDashedMaterial({color:0xb6c3cf,dashSize:.07,gapSize:.035}));
+   line.computeLineDistances(); addObj(line); progressGuideVisuals.set(idx,line);
+ }
+}
+function addFigure8(cx,cz,r=.85,h=1.2,color=0xffd166){ const pts=[]; for(let t=0;t<=Math.PI*2+.03;t+=.05) pts.push(new THREE.Vector3(cx+1.4*Math.sin(t)*r,h,cz+Math.sin(t)*Math.cos(t)*r)); addLine(pts,color); }
+function addProgressVerticalFigure8(cx,cz,r=.85,h=1.2,reverse=false){
+ const count=64;
+ for(let k=0;k<count;k++){
+   const t0=(reverse?-1:1)*(k/count)*Math.PI*2;
+   const t1=(reverse?-1:1)*((k+1)/count)*Math.PI*2;
+   // 原本水平 ∞ 旋轉 90°：將主要延伸方向改到 Z 軸，形成直向倒 8
+   const p0=new THREE.Vector3(cx+Math.sin(t0)*Math.cos(t0)*r,h,cz+1.4*Math.sin(t0)*r);
+   const p1=new THREE.Vector3(cx+Math.sin(t1)*Math.cos(t1)*r,h,cz+1.4*Math.sin(t1)*r);
+   const idx=guideSegments.length;
+   guideSegments.push([p0,p1]);
+   const geo=new THREE.BufferGeometry().setFromPoints([p0,p1]);
+   const line=new THREE.Line(geo,new THREE.LineDashedMaterial({color:0xb6c3cf,dashSize:.07,gapSize:.035}));
+   line.computeLineDistances(); addObj(line); progressGuideVisuals.set(idx,line);
+ }
+}
+function addSCones(){ addCone(-1.1,.09,-.65); addCone(0,.09,.65); addCone(1.1,.09,-.65); }
+function buildTrainingField(id){
+ clearGuides();
+ switch(id){
+  case 1:
+   addMarker(0,1.5,0);addLine([new THREE.Vector3(0,1.5,0),new THREE.Vector3(.45,1.5,0)],0x8ff0ff);addLine([new THREE.Vector3(0,1.5,0),new THREE.Vector3(-.45,1.5,0)],0x8ff0ff);addLine([new THREE.Vector3(0,1.5,0),new THREE.Vector3(0,1.5,.45)],0x8ff0ff);addLine([new THREE.Vector3(0,1.5,0),new THREE.Vector3(0,1.5,-.45)],0x8ff0ff);break;
+  case 2:
+   addStraightLine(-1.4,0,1.4,0,1.2);addCheckpoint(-1.4,1.2,0,0x8ff0ff,.14);addCheckpoint(1.4,1.2,0,0xffd166,.14);break;
+  case 3:
+   addStraightLine(0,0,0,-1.1,1.2);addCheckpoint(0,1.2,0,0x8ff0ff,.14);addCheckpoint(0,1.2,-1.1,0xffd166,.14);break;
+  case 4:
+   addLine([new THREE.Vector3(0,.5,0),new THREE.Vector3(0,1.0,0),new THREE.Vector3(0,2.5,0),new THREE.Vector3(0,.5,0)],0x9fffaa);
+   addCheckpoint(0,1.0,0,0x7dff9a,.18);addCheckpoint(0,2.5,0,0xffd166,.18);addCheckpoint(0,.5,0,0x75d7ff,.18);addLandingPad(0,0,0,.25);break;
+  case 5:addSquarePath(0,0,2.2,1.4);break;
+  case 6:addCheckpoint(0,1.5,0,0xffd166,.20);addMarker(0,1.5,0,0xffffff,.035);break;
+  case 7:addXPath(0,0);
+   // 5 個視覺提示點：起點、右前、回原點、左前、再回原點。重複原點以同心球呈現。
+   addCheckpoint(0,1.2,0,0x8ff0ff,.09);
+   addCheckpoint(1.05,1.2,-.7,0xffd166,.13);
+   addCheckpoint(0,1.2,0,0x7dff9a,.13);
+   addCheckpoint(-1.05,1.2,-.7,0xff8ed1,.13);
+   addCheckpoint(0,1.2,0,0xffffff,.17);break;
+  case 8:addStraightLine(-1,0,1,0,1.2,0xff8ed1);addCheckpoint(-1,1.2,0,0x8ff0ff,.13);addCheckpoint(1,1.2,0,0xffd166,.13);break;
+  case 9:addGuideGoal(2,GOAL_Y,0);break;
+  case 10:addGuideGoal(1.7,GOAL_Y,0);
+   addCheckpoint(2.15,GOAL_Y,0,0xffd166,.16);
+   addCheckpoint(-1.4,1.2,0,0x8ff0ff,.16);
+   addStraightLine(-1.4,0,1.7,0,1.2,0xb6c3cf);
+   addLandingPad(-1.4,0,0,.25);break;
+  case 11:addProgressCirclePath(0,0,.9,1.2,false);break;
+  case 12:addProgressCirclePath(0,0,.9,1.2,true);break;
+  case 13:addProgressVerticalFigure8(0,0,.85,1.2,false);break;
+  case 14:addProgressVerticalFigure8(0,0,.85,1.2,true);break;
+  case 15:addSCones();addLine([new THREE.Vector3(-1.5,1.2,-.65),new THREE.Vector3(-1.05,1.2,.50),new THREE.Vector3(0,1.2,-.50),new THREE.Vector3(1.05,1.2,.50),new THREE.Vector3(1.5,1.2,-.65)]);addMarker(-1.5,1.2,-.65,0x8ff0ff,.18);addMarker(1.5,1.2,-.65,0xffd166,.18);break;
+  case 16:addGuideGoal(1.9,GOAL_Y,0);addMarker(-1.4,.5,0,0x8ff0ff,.18);addMarker(2.2,GOAL_Y,0,0xffd166,.18);addLine([new THREE.Vector3(-1.4,.5,0),new THREE.Vector3(1.9,GOAL_Y,0),new THREE.Vector3(2.2,GOAL_Y,0)]);break;
+  case 17:addStraightLine(-1.4,0,1.8,0,1.2);addCheckpoint(1.8,1.2,0,0xff6f61,.16);addCheckpoint(-1.4,1.2,0,0x8ff0ff,.13);break;
+  case 18:addGuideGoal(.5,GOAL_Y,0);addGuideGoal(1.9,GOAL_Y,0);addMarker(-1.2,GOAL_Y,0,0x8ff0ff,.18);addMarker(2.2,GOAL_Y,0,0xffd166,.18);addLine([new THREE.Vector3(-1.2,GOAL_Y,0),new THREE.Vector3(.5,GOAL_Y,0),new THREE.Vector3(1.9,GOAL_Y,0),new THREE.Vector3(2.2,GOAL_Y,0)]);break;
+  case 19:addLandingPad(0,0,0,.22);break;
+  case 20:addSCones();addMarker(-1.5,1.2,-.65,0x8ff0ff,.18);addLine([new THREE.Vector3(-1.5,1.2,-.65),new THREE.Vector3(-1.05,1.2,.50),new THREE.Vector3(0,1.2,-.50),new THREE.Vector3(1.05,1.2,.50)]);addGuideGoal(1.9,GOAL_Y,0);addLine([new THREE.Vector3(1.05,1.2,.50),new THREE.Vector3(1.9,GOAL_Y,0)]);addFigure8(-.2,0,.7);addLandingPad(-1.5,0,0,.22);break;
+  case 21:addGuideGoal(2,GOAL_Y,0);addMarker(.9,1.4,.7,0xffd166,.18);addLine([new THREE.Vector3(.9,1.4,.7),new THREE.Vector3(2,GOAL_Y,0)]);break;
+  case 22:addGuideGoal(2,GOAL_Y,0);addStraightLine(0,0,1.5,0,1.2,0x8ff0ff);break;
+  case 23:addGuideGoal(-2,GOAL_Y,0);addMarker(-1.5,1.7,0,0xff6f61,.20);break;
+  case 24:addGuideGoal(2,GOAL_Y,0);addMarker(1.0,2.8,0,0xffd166,.18);addLine([new THREE.Vector3(1.0,2.8,0),new THREE.Vector3(2,GOAL_Y,0)]);break;
+  case 25:addGuideGoal(2,GOAL_Y,0);addMarker(0,1.3,0,0xffffff,.18);addLine([new THREE.Vector3(0,1.3,0),new THREE.Vector3(2,GOAL_Y,0)]);break;
+  case 26:addGuideGoal(2,GOAL_Y,0);addCone(.65,.09,-.35);addCone(1.15,.09,.35);addMarker(-.3,1.3,0,0x8ff0ff,.18);addLine([new THREE.Vector3(-.3,1.3,0),new THREE.Vector3(.55,1.35,.50),new THREE.Vector3(1.15,1.5,-.45),new THREE.Vector3(2,GOAL_Y,0)]);break;
+  case 27:addStraightLine(-2.7,-1.2,2.7,-1.2,1.2);addStraightLine(2.7,-1.2,2.7,1.2,1.2);addStraightLine(2.7,1.2,-2.7,1.2,1.2);addStraightLine(-2.7,1.2,-2.7,-1.2,1.2);break;
+  case 28:addGuideGoal(2,GOAL_Y,0);addStraightLine(0,0,1.4,0,1.2,0x8ff0ff);break;
+  case 29:addSCones();addMarker(-1.4,1.2,0,0x8ff0ff,.18);addLine([new THREE.Vector3(-1.4,1.2,0),new THREE.Vector3(-1.0,1.25,.55),new THREE.Vector3(0,1.35,-.55),new THREE.Vector3(1.0,1.5,.55),new THREE.Vector3(2,GOAL_Y,0)]);addGuideGoal(2,GOAL_Y,0);break;
+  case 30:addSCones();addMarker(-1.6,1.1,0,0x8ff0ff,.18);addLine([new THREE.Vector3(-1.6,1.1,0),new THREE.Vector3(-1.0,1.25,.55),new THREE.Vector3(0,1.35,-.55),new THREE.Vector3(1.0,1.5,.55),new THREE.Vector3(2,GOAL_Y,0),new THREE.Vector3(-.7,1.2,0),new THREE.Vector3(-1.6,.15,0)]);addGuideGoal(2,GOAL_Y,0);addLandingPad(-1.6,0,0,.2);break;
+ }
+}
+const keys={};
+// ===== USB FPV controller / Gamepad API =====
+const radio={index:null,centers:[0,0,0,0,0,0,0,0],lastArm:false};
+function fillControllerOptions(){
+ const sels=[mapRoll,mapPitch,mapYaw,mapThrottle];
+ sels.forEach((s,si)=>{s.innerHTML='';for(let i=0;i<8;i++){const o=document.createElement('option');o.value=i;o.textContent='Axis '+i;s.appendChild(o)}s.value=[0,1,2,3][si]});
+ armButton.innerHTML='<option value="-1">不設定</option>';for(let i=0;i<16;i++){const o=document.createElement('option');o.value=i;o.textContent='Button '+i;armButton.appendChild(o)}
+}
+fillControllerOptions();
+function getPad(){const pads=navigator.getGamepads?navigator.getGamepads():[];if(radio.index!==null&&pads[radio.index])return pads[radio.index];for(const p of pads){if(p){radio.index=p.index;return p}}return null}
+function dead(v){const d=+radioDeadzone.value;return Math.abs(v)<d?0:(Math.sign(v)*(Math.abs(v)-d)/(1-d))}
+function axisValue(name){const gp=getPad();if(!gp)return 0;const map={roll:mapRoll,pitch:mapPitch,yaw:mapYaw,throttle:mapThrottle}[name];const rev={roll:revRoll,pitch:revPitch,yaw:revYaw,throttle:revThrottle}[name];const idx=+map.value;let v=(gp.axes[idx]??0)-(radio.centers[idx]??0);v=clamp(v,-1,1);if(rev.checked)v=-v;return dead(v)}
+function updateControllerUI(){
+ const gp=getPad();inputBadge.classList.toggle('connected',!!gp);inputLabel.textContent=gp?'FPV 遙控器已連線':'鍵盤控制';
+ gamepadStatus.textContent=gp?`已連線：${gp.id}｜Axes ${gp.axes.length}｜Buttons ${gp.buttons.length}`:'尚未偵測到 USB 遙控器。請接上遙控器並撥動搖桿或按任意按鍵。';
+ if(!gp){axisMonitor.innerHTML='<div class="small">等待裝置輸入…</div>';return}
+ const names=['Roll','Pitch','Yaw','Throttle'];const vals=[axisValue('roll'),axisValue('pitch'),axisValue('yaw'),axisValue('throttle')];
+ axisMonitor.innerHTML=names.map((n,i)=>{const v=vals[i],left=v<0?50+v*50:50,w=Math.abs(v)*50;return `<div class="axisLive"><span>${n}</span><div class="axisTrack"><i></i><b style="left:${left}%;width:${w}%"></b></div><span>${v.toFixed(2)}</span></div>`}).join('');
+ const bi=+armButton.value;if(bi>=0&&gp.buttons[bi]){const pressed=gp.buttons[bi].pressed;if(pressed&&!radio.lastArm){player.armed=!player.armed;status.textContent=player.armed?'ARMED｜FPV 遙控器':'DISARMED｜FPV 遙控器'}radio.lastArm=pressed}else radio.lastArm=false;
+}
+window.addEventListener('gamepadconnected',e=>{radio.index=e.gamepad.index;updateControllerUI();});window.addEventListener('gamepaddisconnected',e=>{if(radio.index===e.gamepad.index)radio.index=null;updateControllerUI();});
+controllerBtn.addEventListener('click',()=>{controllerModal.classList.add('open');viewport.focus()});controllerClose.addEventListener('click',()=>controllerModal.classList.remove('open'));
+radioDeadzone.addEventListener('input',()=>deadzoneTxt.textContent=(+radioDeadzone.value).toFixed(2));
+mode2Btn.addEventListener('click',()=>{mapRoll.value=0;mapPitch.value=1;mapYaw.value=2;mapThrottle.value=3;revRoll.checked=false;revPitch.checked=true;revYaw.checked=true;revThrottle.checked=true;calInfo.textContent='已套用 Mode 2 預設。若方向不正確，勾選/取消 REV 即可。'});
+centerCalBtn.addEventListener('click',()=>{const gp=getPad();if(!gp){calInfo.textContent='尚未偵測到遙控器。';return}gp.axes.forEach((v,i)=>radio.centers[i]=v);radio.centers[+mapThrottle.value]=0;calInfo.textContent='中心校正完成。Throttle 維持 0 基準；其他軸已記錄目前中心。'});
+const LEVELS=[[1,"四面定點懸停","升空至約 1.5m，正面、左側、右側、對視四個方向，每一面都必須連續穩定懸停 10 秒。"],[2,"前後直線進退","沿空中虛線前進，再沿相同航線後退返回。"],[3,"左右直線平移","機頭保持固定，沿空中虛線完成左右平移。"],[4,"高低爬升降落","依空中提示完成低、中、高高度控制並降落。"],[5,"四方方形航線","沿空中虛線完成方形航線並返回起點。"],[6,"原地 360 度旋轉","保持定點與高度，完成左右 360°旋轉。"],[7,"對角 X 字航線","沿兩條空中虛線完成 X 字航線。"],[8,"對視逆向操控","機頭朝向操作者，沿虛線完成進退。"],[9,"定點球門穿過","沿空中虛線穿過訓練球門，不碰框。"],[10,"雛鳥晉級綜合關卡","穿門、180°迴轉、返回並精準降落。"],[11,"順時針環形航線","沿空中虛線完成順時針圓形。"],[12,"逆時針環形航線","沿空中虛線完成逆時針圓形。"],[13,"正飛八字航線","機頭固定，沿分段虛線完成旋轉 90° 的直向倒 8；灰色未通過、綠色已通過。"],[14,"機頭跟隨八字航線","機頭跟隨航向，沿分段虛線完成旋轉 90° 的直向倒 8；完成 92% 才通過。"],[15,"角錐 S 型繞飛","依空中虛線繞過三個角錐。"],[16,"立體爬升過框","由低高度斜向爬升並穿過空中球門。"],[17,"全速急停煞車","沿虛線加速並於停止點前煞停。"],[18,"雙門連續穿越","沿空中虛線連續穿過兩個球門。"],[19,"地面翻轉復原","模擬翻覆後完成 Turtle Mode 復原。"],[20,"麻雀晉級綜合關卡","完成 S 型、穿門、八字與精準降落。"],[21,"45 度斜向進球","從斜側起點依虛線切入球門。"],[22,"進球後全員回場","進球後依虛線立即返回指定回場點。"],[23,"門前卡位防守","在指定防守點穩定卡位。"],[24,"高空俯衝攻門","從高點沿下降虛線攻門。"],[25,"10 秒 Penalty Shot","從起點於 10 秒內完成射門。"],[26,"干擾下閃避突破","沿虛線變換航線、避障並完成進球。"],[27,"網籠邊界貼壁飛行","沿外框空中虛線完成一圈。"],[28,"30 秒極速攻防拉扯","依虛線完成進球、回場、再進攻循環。"],[29,"盲區極限控球","保持目視，以側向視角繞障並進球。"],[30,"隼鷹級王牌總考","依完整空中虛線完成綜合任務並降落。"]];
+let flightMode='level', viewMode='third', mode='free', matchRunning=false, matchTime=180, score={red:0,blue:0}, selectedLevel=1, activeLevel=null, levelStart=0;
+let level1Completed=new Set(), level1Face=null, level1Hold=0, lastAcademyTick=performance.now();
+let courseStage=0,courseHold=0,level4Stage=0,level4Hold=0;
+let level6Phase=0,level6CW=0,level6CCW=0,level6PrevYaw=0;
+let level10Stage=0,level10StartYaw=0;
+function resetCourseState(){courseStage=0;courseHold=0;level4Stage=0;level4Hold=0;level6Phase=0;level6CW=0;level6CCW=0;level6PrevYaw=yawDeg360();level10Stage=0;level10StartYaw=0;}
+function checkpointReached(x,y,z,r=.18){return player.group.position.distanceTo(new THREE.Vector3(x,y,z))<=r+player.radius;}
+const faceDefs=[{name:'正面',deg:0},{name:'左側',deg:90},{name:'對視',deg:180},{name:'右側',deg:270}];
+function resetLevel1State(){ level1Completed.clear(); level1Face=null; level1Hold=0; lastAcademyTick=performance.now(); }
+function yawDeg360(){ return (THREE.MathUtils.radToDeg(player.yaw)%360+360)%360; }
+function nearestFace(){ const y=yawDeg360(); let best=faceDefs[0],err=999; for(const f of faceDefs){ const e=Math.abs(((y-f.deg+540)%360)-180); if(e<err){err=e;best=f;} } return {face:best,error:err}; }
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))} function bounceVal(){return +bounce.value} function damageVal(){return +damage.value}
+function resetPlayer(){ player.group.position.set(-1.4,1.1,0); player.vel.set(0,0,0); player.yaw=0; player.health=100; player.hits=0; player.armed=false; player.retreatRequired=false; player.group.rotation.set(0,0,0); status.textContent='已重置。按 Space Arm。'; }
+function impact(d,imp,label){ d.hits++; d.health=Math.max(0,d.health-Math.max(0,imp-1.2)*8*damageVal()); if(d===player){ status.textContent=`碰撞：${label}｜強度 ${imp.toFixed(1)}`; if(autoDisarm.checked&&imp>4.2){ player.armed=false; status.textContent=`高速碰撞：${label}｜AUTO DISARM`; } } }
+function resolveCage(d){ if(!cageCollision.checked)return; const p=d.group.position,r=d.radius,e=bounceVal(),limX=ARENA.L/2-r,limZ=ARENA.W/2-r,minY=r,maxY=ARENA.H-r; if(p.x<-limX){let imp=Math.abs(d.vel.x);p.x=-limX;d.vel.x=Math.abs(d.vel.x)*e;impact(d,imp,'左側網籠')} if(p.x>limX){let imp=Math.abs(d.vel.x);p.x=limX;d.vel.x=-Math.abs(d.vel.x)*e;impact(d,imp,'右側網籠')} if(p.z<-limZ){let imp=Math.abs(d.vel.z);p.z=-limZ;d.vel.z=Math.abs(d.vel.z)*e;impact(d,imp,'側網')} if(p.z>limZ){let imp=Math.abs(d.vel.z);p.z=limZ;d.vel.z=-Math.abs(d.vel.z)*e;impact(d,imp,'側網')} if(p.y<minY){let imp=Math.abs(d.vel.y);p.y=minY;d.vel.y=Math.abs(d.vel.y)*e;impact(d,imp,'地面')} if(p.y>maxY){let imp=Math.abs(d.vel.y);p.y=maxY;d.vel.y=-Math.abs(d.vel.y)*e;impact(d,imp,'頂網')} }
+function resolveGoal(d,g){ if(mode==='academy'||!goalCollision.checked)return; const p=d.group.position,dx=p.x-g.center.x,dy=p.y-g.center.y,dz=p.z-g.center.z,radial=Math.hypot(dy,dz),planeReach=d.radius+GOAL_TUBE,ringReach=d.radius+GOAL_TUBE; if(Math.abs(dx)<planeReach&&Math.abs(radial-GOAL_R)<ringReach){ const nrY=dy/(radial||1),nrZ=dz/(radial||1),penX=planeReach-Math.abs(dx),penR=ringReach-Math.abs(radial-GOAL_R); let n=new THREE.Vector3(); if(penX<penR) n.set(Math.sign(dx)||1,0,0); else n.set(0,nrY,nrZ).multiplyScalar(radial<GOAL_R?-1:1); const vn=d.vel.dot(n),imp=Math.abs(vn); d.group.position.addScaledVector(n,Math.min(penX,penR)+.003); if(vn<0)d.vel.addScaledVector(n,-(1+bounceVal())*vn); impact(d,imp,'球門環'); } }
+function sphereCollision(a,b){
+ if(!droneCollision.checked)return;
+ const pa=a.group.position,pb=b.group.position,delta=new THREE.Vector3().subVectors(pb,pa); let dist=delta.length(),min=a.radius+b.radius;
+ if(dist<min){
+   const now=performance.now();
+   if(a.team!==b.team){ if(a.role==='attacker'&&b.role==='defender')b.pushedByAttackerUntil=now+1100; if(b.role==='attacker'&&a.role==='defender')a.pushedByAttackerUntil=now+1100; }
+   if(dist<.0001){delta.set(1,0,0);dist=1}
+   const n=delta.multiplyScalar(1/dist),over=min-dist; pa.addScaledVector(n,-over/2);pb.addScaledVector(n,over/2);
+   const rel=new THREE.Vector3().subVectors(b.vel,a.vel).dot(n);
+   if(rel<0){ const j=-(1+bounceVal())*rel/2; a.vel.addScaledVector(n,-j);b.vel.addScaledVector(n,j); impact(a,Math.abs(j)*2,'無人機');impact(b,Math.abs(j)*2,'無人機'); }
+ }
+}
+function forwardVec(yaw){return new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw))} function rightVec(yaw){return new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw))}
+function updatePlayer(dt){ let f=0,s=0,v=0,yawIn=0; if(keys.w)f+=1;if(keys.s)f-=1;if(keys.a)s-=1;if(keys.d)s+=1;if(keys.arrowup)v+=1;if(keys.arrowdown)v-=1;if(keys.arrowleft)yawIn+=1;if(keys.arrowright)yawIn-=1; const gp=getPad(); if(gp){s+=axisValue('roll');f+=axisValue('pitch');yawIn-=axisValue('yaw');v+=axisValue('throttle');} f=clamp(f,-1,1);s=clamp(s,-1,1);v=clamp(v,-1,1);yawIn=clamp(yawIn,-1,1); if(player.armed&&player.health>0){ let a=+accel.value*(flightMode==='level'?1:flightMode==='angle'?1.25:1.5); let yr=(+yawRate.value)*(flightMode==='level'?1:flightMode==='angle'?1.2:1.6); player.yaw+=THREE.MathUtils.degToRad(yr*yawIn*dt); const fwd=forwardVec(player.yaw),rgt=rightVec(player.yaw); player.vel.addScaledVector(fwd,f*a*dt); player.vel.addScaledVector(rgt,s*a*dt); player.vel.y+=v*(+vertical.value)*dt*2.2; const drag=flightMode==='acro'?.995:flightMode==='angle'?.985:.97; player.vel.multiplyScalar(Math.pow(drag,dt*60)); } else player.vel.multiplyScalar(Math.pow(.92,dt*60)); const max=flightMode==='acro'?6:flightMode==='angle'?4.5:3.5; if(player.vel.length()>max)player.vel.setLength(max); player.group.position.addScaledVector(player.vel,dt); player.group.rotation.y=player.yaw; if(player.armed){ const fwd=forwardVec(player.yaw),rgt=rightVec(player.yaw); player.group.rotation.z=clamp(-player.vel.dot(rgt)*.07,-.42,.42); player.group.rotation.x=clamp(player.vel.dot(fwd)*.07,-.42,.42); } resolveCage(player); goals.forEach(g=>resolveGoal(player,g)); }
+function updateAI(dt){
+ for(const d of ai){
+   const p=d.group.position; let target=new THREE.Vector3();
+   if(d.retreatRequired){
+     target.set(d.team==='red'?-1.0:1.0,1.3,0);
+     if((d.team==='red'&&p.x<0)||(d.team==='blue'&&p.x>0)){ d.retreatRequired=false; }
+   }else if(d.role==='attacker'){
+     target.set(d.team==='red'?2.2:-2.2,GOAL_Y,0);
+   }else{
+     const ownX=d.team==='red'?-1.7:1.7;
+     target.set(ownX,p.y>1.5?1.8:1.2,p.z>=0?.55:-.55);
+     const enemyAttacker=(player.team!==d.team&&player.role==='attacker')?player:ai.find(x=>x.team!==d.team&&x.role==='attacker');
+     if(enemyAttacker){ target.z=THREE.MathUtils.lerp(target.z,enemyAttacker.group.position.z,.35); target.y=THREE.MathUtils.lerp(target.y,enemyAttacker.group.position.y,.25); }
+   }
+   const desired=target.sub(p); if(desired.lengthSq()>1e-6)desired.normalize().multiplyScalar(d.role==='attacker'?2.2:1.6);
+   d.vel.lerp(desired,dt*1.5); p.addScaledVector(d.vel,dt); d.yaw=Math.atan2(-d.vel.z,d.vel.x); d.group.rotation.y=d.yaw;
+   resolveCage(d); goals.forEach(g=>resolveGoal(d,g));
+ }
+ if(droneCollision.checked){ for(const d of ai)sphereCollision(player,d); for(let i=0;i<ai.length;i++)for(let j=i+1;j<ai.length;j++)sphereCollision(ai[i],ai[j]); }
+}
+function droneCanScore(d){ return d.role==='attacker'&&!d.retreatRequired; }
+function updateRetreatState(){
+ if(player.role==='attacker'&&player.retreatRequired&&player.group.position.x<0){ player.retreatRequired=false; status.textContent='回場完成｜可再次進攻'; }
+}
+function scoreCheck(){
+ updateRetreatState();
+ const p=player.group.position;
+ if(droneCanScore(player)&&p.x>goals[1].center.x+.14&&Math.hypot(p.y-GOAL_Y,p.z)<GOAL_R-player.radius*.55){
+   score.red++; player.retreatRequired=true; status.textContent='RED GOAL！請自行飛回己方半場（越過中線）';
+ }
+ for(const attacker of ai.filter(x=>x.role==='attacker')){
+   const ap=attacker.group.position;
+   if(attacker.team==='red'&&droneCanScore(attacker)&&ap.x>goals[1].center.x+.14&&Math.hypot(ap.y-GOAL_Y,ap.z)<GOAL_R-attacker.radius*.55){ score.red++; attacker.retreatRequired=true; status.textContent='RED AI GOAL｜進攻手回場中'; }
+   if(attacker.team==='blue'&&droneCanScore(attacker)&&ap.x<goals[0].center.x-.14&&Math.hypot(ap.y-GOAL_Y,ap.z)<GOAL_R-attacker.radius*.55){ score.blue++; attacker.retreatRequired=true; status.textContent='BLUE GOAL｜進攻手回場中'; }
+ }
+}
+function updateCamera(){const p=player.group.position,fwd=forwardVec(player.yaw);if(viewMode==='fpv'){camera.position.copy(p).add(new THREE.Vector3(0,.015,0)).addScaledVector(fwd,.055);const look=p.clone().addScaledVector(fwd,2);look.y+=.02;camera.lookAt(look);}else if(viewMode==='pilot'){camera.position.set(-3.65,1.65,0);camera.lookAt(new THREE.Vector3(.4,1.45,0));}else{ const desired=p.clone().add(new THREE.Vector3(0,.65,0)).addScaledVector(fwd,-1.25); camera.position.lerp(desired,.12); const look=p.clone().addScaledVector(fwd,.6); look.y+=.1; camera.lookAt(look); } }
+function updateHUD(){ hudAlt.textContent=player.group.position.y.toFixed(2)+' m'; hudSpeed.textContent=player.vel.length().toFixed(2)+' m/s'; hudYaw.textContent=Math.round(THREE.MathUtils.radToDeg(player.yaw)%360)+'°'; hudMode.textContent=flightMode.toUpperCase(); hudHealth.textContent=Math.round(player.health)+'%'; hudRole.textContent=player.role.toUpperCase()+(player.retreatRequired?' / RETREAT':'');hudCamera.textContent=viewMode.toUpperCase(); redScore.textContent=score.red; blueScore.textContent=score.blue; clock.textContent=`${String(Math.floor(matchTime/60)).padStart(2,'0')}:${String(Math.floor(matchTime%60)).padStart(2,'0')}`; }
+function academyCheck(){
+ if(!activeLevel)return;
+ const now=performance.now(),dt=Math.min(.1,(now-lastAcademyTick)/1000); lastAcademyTick=now;
+ const id=activeLevel[0],t=(now-levelStart)/1000,p=player.group.position;
+ if(id===1){
+   const stable=player.armed&&player.vel.length()<.22&&p.y>1.35&&p.y<1.65&&Math.hypot(p.x,p.z)<.50;
+   const nf=nearestFace();
+   if(stable&&nf.error<=25&&!level1Completed.has(nf.face.name)){
+     if(level1Face===nf.face.name)level1Hold+=dt; else { level1Face=nf.face.name; level1Hold=dt; }
+     if(level1Hold>=10){ level1Completed.add(nf.face.name); level1Hold=0; level1Face=null; status.textContent=`${nf.face.name} 10 秒完成`; }
+   }else if(!stable||nf.error>25){ level1Hold=0; level1Face=null; }
+   const done=[...level1Completed].join('、')||'尚未完成';
+   taskProgress.textContent=`已完成：${done}｜目前：${level1Face||nf.face.name} ${level1Hold.toFixed(1)}/10.0 秒｜穩定 ${stable?'✓':'✗'}`;
+   if(level1Completed.size===4)pass();
+   return;
+ }
+ // Level 2: 去程到前端，再沿同一路線回起點
+ if(id===2){
+   const contact=updateGuideContact();
+   if(courseStage===0&&checkpointReached(1.4,1.2,0,.14)){courseStage=1;status.textContent='去程完成｜請後退返回起點';}
+   else if(courseStage===1&&checkpointReached(-1.4,1.2,0,.14)){courseStage=2;pass();return;}
+   taskProgress.textContent=`${courseStage===0?'去程：前往黃色端點':'回程：返回藍色起點'}｜提示線 ${contact.onLine?'接觸中 ✓':'未接觸'}｜${courseStage}/2 段完成`;
+   return;
+ }
+ // Level 3: 由原點向左，再向右回到原點
+ if(id===3){
+   const contact=updateGuideContact();
+   if(courseStage===0&&checkpointReached(0,1.2,-1.1,.14)){courseStage=1;status.textContent='左移完成｜請向右返回原點';}
+   else if(courseStage===1&&checkpointReached(0,1.2,0,.14)){courseStage=2;pass();return;}
+   taskProgress.textContent=`${courseStage===0?'左移：前往黃色端點':'右移：返回藍色原點'}｜提示線 ${contact.onLine?'接觸中 ✓':'未接觸'}｜${courseStage}/2 段完成`;
+   return;
+ }
+ // Level 4: 1m 5秒 → 2.5m 5秒 → 0.5m 5秒 → 著陸
+ if(id===4){
+   const steps=[{y:1.0,name:'1.0m 懸停',color:'綠色'},{y:2.5,name:'2.5m 懸停',color:'黃色'},{y:.5,name:'0.5m 懸停',color:'藍色'}];
+   if(level4Stage<3){
+     const st=steps[level4Stage];
+     const inside=Math.hypot(p.x,p.z)<=.30&&Math.abs(p.y-st.y)<=.22&&player.vel.length()<.30;
+     if(inside) level4Hold+=dt; else level4Hold=0;
+     if(level4Hold>=5){level4Stage++;level4Hold=0;status.textContent=`${st.name} 完成`;}
+     taskProgress.textContent=`第 ${level4Stage+1}/4 段｜${st.name} ${level4Hold.toFixed(1)}/5.0 秒｜進入${st.color}半透明球即可計時`;
+   }else{
+     const landed=p.y<=player.radius+.05&&player.vel.length()<.18&&Math.hypot(p.x,p.z)<=.35;
+     taskProgress.textContent=`第 4/4 段｜請降落在白色圓形降落區｜${landed?'著陸 ✓':'尚未著陸'}`;
+     if(landed){pass();return;}
+   }
+   return;
+ }
+ // Level 6: 在放大的定點球內，依序完成順時針 360°、逆時針 360°
+ if(id===6){
+   const inside=checkpointReached(0,1.5,0,.20)&&player.vel.length()<.38;
+   const yaw=yawDeg360();
+   let delta=((yaw-level6PrevYaw+540)%360)-180;
+   level6PrevYaw=yaw;
+   if(inside){
+     if(level6Phase===0){
+       if(delta<0) level6CW+=-delta;
+       if(level6CW>=350){level6Phase=1;status.textContent='順時針 360° 完成｜請逆時針旋轉';level6PrevYaw=yaw;}
+     }else{
+       if(delta>0) level6CCW+=delta;
+       if(level6CCW>=350){pass();return;}
+     }
+   }
+   taskProgress.textContent=`${level6Phase===0?'順時針':'逆時針'}旋轉｜順時針 ${Math.min(360,level6CW).toFixed(0)}° / 360°｜逆時針 ${Math.min(360,level6CCW).toFixed(0)}° / 360°｜定點 ${inside?'✓':'請回到黃色判定球'}`;
+   return;
+ }
+ // Level 10: 穿門 → 碰觸門後黃色提示點 → 180° 轉向 → 返回藍色提示點 → 降落
+ if(id===10){
+   const radial=Math.hypot(p.y-GOAL_Y,p.z);
+   if(level10Stage===0 && p.x>1.82 && radial<GOAL_R-player.radius*.35){level10Stage=1;status.textContent='穿門完成｜請碰觸門後黃色提示點';}
+   else if(level10Stage===1 && checkpointReached(2.15,GOAL_Y,0,.16)){level10Stage=2;level10StartYaw=yawDeg360();status.textContent='提示點完成｜請原地轉向約 180°';}
+   else if(level10Stage===2){
+     const turn=Math.abs(((yawDeg360()-level10StartYaw+540)%360)-180);
+     if(turn>=155){level10Stage=3;status.textContent='180° 轉向完成｜請飛回藍色提示點';}
+   }else if(level10Stage===3 && checkpointReached(-1.4,1.2,0,.16)){level10Stage=4;status.textContent='已返回起點｜請降落於白色降落區';}
+   else if(level10Stage===4){
+     const landed=p.y<=player.radius+.05&&player.vel.length()<.20&&Math.hypot(p.x+1.4,p.z)<=.30;
+     if(landed){pass();return;}
+   }
+   const labels=['穿越球門','碰觸門後黃色提示點','原地 180° 轉向','返回藍色提示點','精準降落'];
+   taskProgress.textContent=`第 ${Math.min(5,level10Stage+1)}/5 段｜${labels[Math.min(4,level10Stage)]}`;
+   return;
+ }
+ // Level 11/12: 圓形航線逐段變色，完成色為綠色
+ if(id===11||id===12){
+   const contact=updateGuideContact();
+   const pct=Math.round(contact.coverage*100);
+   taskProgress.textContent=`${id===11?'順時針':'逆時針'}圓形航線｜已通過綠色 ${pct}%｜未通過灰色 ${100-pct}%｜目前 ${contact.onLine?'在線上 ✓':'未接觸提示線'}`;
+   if(contact.coverage>=.92){pass();return;}
+   return;
+ }
+ // Level 13/14: 直向倒 8 分段判定，灰色未通過、綠色已通過，92% PASS
+ if(id===13||id===14){
+   const contact=updateGuideContact();
+   const pct=Math.round(contact.coverage*100);
+   taskProgress.textContent=`${id===13?'正飛直向倒 8':'機頭跟隨直向倒 8'}｜已通過綠色 ${pct}%｜未通過灰色 ${100-pct}%｜目前 ${contact.onLine?'在線上 ✓':'未接觸提示線'}`;
+   if(contact.coverage>=.92){pass();return;}
+   return;
+ }
+ // Level 7: 中心→右前→中心→左前→中心
+ if(id===7){
+   const wps=[[1.05,1.2,-.7],[0,1.2,0],[-1.05,1.2,-.7],[0,1.2,0]];
+   if(courseStage<wps.length&&checkpointReached(...wps[courseStage],.14)){courseStage++; if(courseStage===wps.length){pass();return;}}
+   taskProgress.textContent=`X 字分段 ${courseStage}/4｜依序：右前 → 原點 → 左前 → 原點`;
+   return;
+ }
+ // Level 8: 前進再後退返回
+ if(id===8){
+   if(courseStage===0&&checkpointReached(1,1.2,0,.13)){courseStage=1;status.textContent='前進完成｜請後退返回';}
+   else if(courseStage===1&&checkpointReached(-1,1.2,0,.13)){courseStage=2;pass();return;}
+   taskProgress.textContent=`${courseStage===0?'前進段':'後退返回段'}｜${courseStage}/2 段完成`;
+   return;
+ }
+ // Level 17: 到停止點，穩定3秒，再返回
+ if(id===17){
+   if(courseStage===0&&checkpointReached(1.8,1.2,0,.16)){courseStage=1;courseHold=0;status.textContent='已到急停區｜保持靜止 3 秒';}
+   if(courseStage===1){ if(player.vel.length()<.22&&checkpointReached(1.8,1.2,0,.20))courseHold+=dt; else courseHold=0; if(courseHold>=3){courseStage=2;status.textContent='急停完成｜請倒退返回起點';} }
+   if(courseStage===2&&checkpointReached(-1.4,1.2,0,.14)){courseStage=3;pass();return;}
+   taskProgress.textContent=courseStage===0?'前往紅色急停點':courseStage===1?`急停 ${courseHold.toFixed(1)}/3.0 秒`:'倒退返回起點';
+   return;
+ }
+ const contact=updateGuideContact();
+ const coveragePct=Math.round(contact.coverage*100);
+ taskProgress.textContent=`時間 ${t.toFixed(1)} 秒｜${contact.onLine?'球形護框接觸提示線 ✓':'未接觸提示線'}｜綠色已通過 ${coveragePct}%｜灰色未通過 ${100-coveragePct}%`;
+ const stagedLevels=new Set([2,3,4,7,8,17]);
+ const pathLevels=new Set([5,15,16,18,20,21,22,24,25,26,27,28,29,30]);
+ if(!stagedLevels.has(id)&&pathLevels.has(id)&&guideSegments.length&&contact.coverage>=.92){ pass(); return; }
+ if(id===9&&p.x>2.0&&Math.hypot(p.y-GOAL_Y,p.z)<GOAL_R-player.radius*.55){ pass(); return; }
+}
+function pass(){status.textContent=`LEVEL ${activeLevel[0]} PASS｜${activeLevel[1]}`;taskProgress.textContent='✅ 已達成目前自動判定條件';player.armed=false;}
+function renderLevels(){ const range=tier.value==='bird'?[1,10]:tier.value==='sparrow'?[11,20]:[21,30]; levels.innerHTML=''; LEVELS.filter(l=>l[0]>=range[0]&&l[0]<=range[1]).forEach(l=>{ const b=document.createElement('button'); b.type='button'; b.className='level'+(l[0]===selectedLevel?' sel':''); b.textContent=`Level ${l[0]}｜${l[1]}`; b.addEventListener('click',()=>{selectedLevel=l[0];renderLevels()}); levels.appendChild(b); }); }
+function setView(v){viewMode=v;thirdBtn.classList.toggle('primary',v==='third');fpvBtn.classList.toggle('primary',v==='fpv');pilotBtn.classList.toggle('primary',v==='pilot');crosshair.style.display=v==='fpv'?'block':'none';status.textContent=v==='pilot'?'場外飛手視角：我方球門後方':v==='fpv'?'FPV 第一人稱視角':'第三人稱追蹤視角';}
+function setMode(m){ document.body.classList.toggle('training-mode',m==='academy');
+ try{
+   // Stop current activity first
+   matchRunning=false;
+   activeLevel=null;
+   player.armed=false;
+   clearGuides();
+   clearAI();
+   touchedGuideSegments.clear();
+   progressGuideVisuals.clear();
+   guideSegments=[];
+   if(typeof taskBox!=='undefined')taskBox.style.display='none';
+   if(typeof scorePanel!=='undefined')scorePanel.style.display='none';
+   if(typeof refPanel!=='undefined')refPanel.style.display='none';
+   [tabFree,tabMatch,tabAcademy].forEach(x=>x.classList.remove('active'));
+   matchPanel.style.display='none';
+   academyPanel.style.display='none';
+
+   mode=m;
+   const academy=(m==='academy');
+   setArenaVisible(!academy);
+   goals.forEach(g=>g.group.visible=!academy);
+   trainingBaseGroup.visible=academy;
+
+   if(m==='free'){
+     tabFree.classList.add('active');
+     modeName.textContent='自由模式';
+     modeDesc.textContent='3D 自由飛行與碰撞練習';
+     player.role='attacker';
+   }else if(m==='match'){
+     tabMatch.classList.add('active');
+     modeName.textContent='3v3 比賽';
+     modeDesc.textContent='每隊 1 攻 2 守；得分後須自行回場';
+     matchPanel.style.display='block';
+     if(typeof refPanel!=='undefined')refPanel.style.display='block';
+     player.role=(typeof roleSelect!=='undefined'&&roleSelect.value)?roleSelect.value:'attacker';
+     setupAI();
+     Referee.state='READY';
+     Referee.redFouls=0;Referee.blueFouls=0;
+     Referee.penaltyTeam=null;Referee.penaltyTimer=0;
+     Referee.retreatRed=false;Referee.retreatBlue=false;
+     Referee.goalHangTimer={red:0,blue:0};
+     uiRef();
+   }else if(m==='academy'){
+     tabAcademy.classList.add('active');
+     modeName.textContent='30級訓練';
+     modeDesc.textContent='空白 3D 空域＋依 Level 動態佈置';
+     academyPanel.style.display='block';
+     if(typeof scorePanel!=='undefined')scorePanel.style.display='block';
+     renderLevels();
+   }else{
+     throw new Error('未知模式：'+m);
+   }
+   resetPlayer();
+   status.textContent=m==='free'?'自由模式已就緒':m==='match'?'比賽模式已就緒':'訓練模式已就緒，請選擇關卡';
+ }catch(err){
+   console.error('Mode switch failed:',err);
+   status.textContent='模式切換錯誤：'+(err?.message||String(err));
+ }
+}
+function resize(){ const r=viewport.getBoundingClientRect(); renderer.setSize(r.width,r.height,false); camera.aspect=r.width/r.height; camera.updateProjectionMatrix(); }
+let resizeRAF=0;const ro=new ResizeObserver(()=>{cancelAnimationFrame(resizeRAF);resizeRAF=requestAnimationFrame(resize);});ro.observe(viewport); resize();
+viewport.addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.code==='Space'){e.preventDefault();player.armed=!player.armed;status.textContent=player.armed?'ARMED｜可以起飛':'DISARMED';} if(e.key.toLowerCase()==='r')resetPlayer(); if(e.key.toLowerCase()==='c'){const seq=['third','fpv','pilot'];setView(seq[(seq.indexOf(viewMode)+1)%3]);} });
+viewport.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; }); viewport.addEventListener('pointerdown',()=>viewport.focus());
+thirdBtn.addEventListener('click',()=>setView('third')); fpvBtn.addEventListener('click',()=>setView('fpv')); pilotBtn.addEventListener('click',()=>setView('pilot')); tabFree.addEventListener('click',()=>setMode('free')); tabMatch.addEventListener('click',()=>setMode('match')); tabAcademy.addEventListener('click',()=>setMode('academy')); document.querySelectorAll('[data-fmode]').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('[data-fmode]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); flightMode=b.dataset.fmode; status.textContent='Flight Mode：'+flightMode.toUpperCase(); })); resetBtn.addEventListener('click',resetPlayer); roleSelect.addEventListener('change',()=>{ player.role=roleSelect.value; setupAI(); status.textContent=player.role==='attacker'?'角色：進攻手｜得分後需自行回場':'角色：防守手｜AI 負責己方進攻'; }); startMatch.addEventListener('click',()=>{ player.role=roleSelect.value; player.retreatRequired=false; score={red:0,blue:0}; matchTime=180; matchRunning=true; player.armed=true; setupAI(); resetGoalPlaneTracking(); status.textContent=player.role==='attacker'?'MATCH START｜你是進攻手':'MATCH START｜你是防守手'; }); tier.addEventListener('change',()=>{ selectedLevel=tier.value==='bird'?1:tier.value==='sparrow'?11:21; renderLevels(); }); loadLevel.addEventListener('click',()=>{ activeLevel=LEVELS.find(l=>l[0]===selectedLevel); levelStart=performance.now(); lastAcademyTick=levelStart; resetLevel1State(); resetCourseState(); resetPlayer(); if(selectedLevel===1)player.group.position.set(0,.12,0); if(selectedLevel===2)player.group.position.set(-1.4,1.2,0); if(selectedLevel===3)player.group.position.set(0,1.2,0); if(selectedLevel===4)player.group.position.set(0,.12,0); if(selectedLevel===6)player.group.position.set(0,1.5,0); if(selectedLevel===7)player.group.position.set(0,1.2,0); if(selectedLevel===8)player.group.position.set(-1,1.2,0); if(selectedLevel===10)player.group.position.set(-1.4,1.2,0); if(selectedLevel===11||selectedLevel===12)player.group.position.set(.9,1.2,0); if(selectedLevel===17)player.group.position.set(-1.4,1.2,0); buildTrainingField(selectedLevel); taskBox.style.display='block'; taskTitle.textContent=`Level ${activeLevel[0]}｜${activeLevel[1]}`; taskText.textContent=activeLevel[2]; taskProgress.textContent=selectedLevel===1?'四個方向各需連續穩定 10 秒':selectedLevel===4?'依序進入高度提示區，每層穩定 5 秒':selectedLevel===6?'保持在黃色判定球內，先順時針再逆時針各 360°':selectedLevel===7?'依序通過 5 個提示節點：起點→右前→原點→左前→原點':selectedLevel===10?'穿門後必須碰觸黃色提示點，再 180° 轉向、返回、降落':(selectedLevel===11||selectedLevel===12)?'灰色＝未通過；綠色＝已通過，完成至少 92% 圓形航線':'提示點為大型半透明 3D 高度球；灰色虛線＝未通過、綠色＝已通過，20 cm 球形護框碰到線段即完成該段；航線型關卡需完成約 92%'; status.textContent=`LEVEL ${activeLevel[0]}｜${activeLevel[1]}`; }); bounce.addEventListener('input',()=>bounceTxt.textContent=(+bounce.value).toFixed(2)); damage.addEventListener('input',()=>damageTxt.textContent=(+damage.value).toFixed(1)); accel.addEventListener('input',()=>accelTxt.textContent=(+accel.value).toFixed(1)); vertical.addEventListener('input',()=>verticalTxt.textContent=(+vertical.value).toFixed(1)); yawRate.addEventListener('input',()=>yawRateTxt.textContent=yawRate.value);
+ const aiDifficulty=document.getElementById('aiDifficulty');
+ const aiDifficultyTxt=document.getElementById('aiDifficultyTxt');
+ const aiDifficultyDesc=document.getElementById('aiDifficultyDesc');
+ function updateAIDifficultyUI(){
+   const v=+(aiDifficulty?.value||5);
+   if(aiDifficultyTxt)aiDifficultyTxt.textContent=v;
+   if(aiDifficultyDesc){
+     aiDifficultyDesc.textContent=
+       v<=3?'入門：進攻較保守，防守反應與預判較慢。':
+       v<=7?'標準：主動找空檔、變線，防守會預判並攔截。':
+       '高手：高積極進攻、快速變線，防守提早封堵與高速補位。';
+   }
+ }
+ if(aiDifficulty){aiDifficulty.addEventListener('input',updateAIDifficultyUI);updateAIDifficultyUI();}
+
+// ===== V10 competition AI, referee and scoring patch =====
+const Referee={state:'READY',redFouls:0,blueFouls:0,penaltyTeam:null,penaltyTimer:0,retreatRed:false,retreatBlue:false,lastGoalTeam:null,goalHangTimer:{red:0,blue:0}};
+let scoreStats={start:0,hits:0,maxDev:0,cover:0,safety:true,result:'進行中',origin:new THREE.Vector3(),visited:new Set()};
+function uiRef(){ if(typeof refState!=='undefined'){refState.textContent=Referee.state;redFouls.textContent=Referee.redFouls;blueFouls.textContent=Referee.blueFouls;} }
+
+function statIdForDrone(d){return d?.statId||d?.netId||d?.userData?.statId||null;}
+function ensureDroneStat(id,name,team,role){
+ if(!id)return null;
+ if(!droneStats[id])droneStats[id]={id,name:name||id,team,role,roundFouls:0,totalFouls:0,roundGoals:0,totalGoals:0};
+ const s=droneStats[id];s.name=name||s.name;s.team=team||s.team;s.role=role||s.role;return s;
+}
+function registerDroneStat(d,id,name){if(!d||!id)return;d.statId=id;d.statName=name||id;ensureDroneStat(id,d.statName,d.team,d.role);}
+function resetRoundDroneStats(){for(const s of Object.values(droneStats)){s.roundFouls=0;s.roundGoals=0;}}
+function recordDroneFoul(d){const id=statIdForDrone(d);if(!id)return;const s=ensureDroneStat(id,d.statName||id,d.team,d.role);s.roundFouls++;s.totalFouls++;}
+function recordDroneGoal(d){const id=statIdForDrone(d);if(!id)return;const s=ensureDroneStat(id,d.statName||id,d.team,d.role);s.roundGoals++;s.totalGoals++;}
+function snapshotDroneStats(){return Object.values(droneStats).map(s=>({...s})).sort((a,b)=>(a.team+a.role+a.name).localeCompare(b.team+b.role+b.name));}
+function statsTableHTML(rows,{totals=true}={}){
+ const list=(rows||[]).filter(Boolean);if(!list.length)return '<div class="small">尚無無人機量化資料</div>';
+ return `<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:5px;border-bottom:1px solid #35506a">無人機</th><th style="padding:5px;border-bottom:1px solid #35506a">隊伍/角色</th><th style="padding:5px;border-bottom:1px solid #35506a">本局犯規</th><th style="padding:5px;border-bottom:1px solid #35506a">總犯規</th><th style="padding:5px;border-bottom:1px solid #35506a">本局得分</th><th style="padding:5px;border-bottom:1px solid #35506a">總得分</th></tr></thead><tbody>${list.map(s=>`<tr><td style="padding:5px;border-bottom:1px solid #203444">${s.name}</td><td style="text-align:center;padding:5px;border-bottom:1px solid #203444">${s.team==='red'?'🔴':'🔵'} ${s.role==='attacker'?'進攻':'防守'}</td><td style="text-align:center;padding:5px;border-bottom:1px solid #203444">${s.roundFouls||0}</td><td style="text-align:center;padding:5px;border-bottom:1px solid #203444">${s.totalFouls||0}</td><td style="text-align:center;padding:5px;border-bottom:1px solid #203444">${s.roundGoals||0}</td><td style="text-align:center;padding:5px;border-bottom:1px solid #203444">${s.totalGoals||0}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function addFoul(team,reason,penalty=false,drone=null){
+ if(team==='red')Referee.redFouls++;else Referee.blueFouls++;
+ recordDroneFoul(drone);
+ Referee.state='FOUL';
+ refMessage.textContent=`${team==='red'?'紅隊':'藍隊'}犯規：${reason}`;
+ if(penalty){
+   Referee.penaltyTeam=team==='red'?'blue':'red';
+   Referee.penaltyTimer=10;
+   Referee.state='PENALTY';
+   refMessage.textContent+=`｜${Referee.penaltyTeam==='red'?'紅隊':'藍隊'} 10 秒 Penalty Shot`;
+ }
+ uiRef();
+ if(isHost&&netConnections.size){
+   broadcast({
+     type:'refereeSync',
+     redFouls:Referee.redFouls,
+     blueFouls:Referee.blueFouls,
+     state:Referee.state,
+     penaltyTeam:Referee.penaltyTeam,
+     penaltyTimer:Referee.penaltyTimer,
+     message:refMessage.textContent,
+     droneStats:snapshotDroneStats()
+   });
+ }}
+function setRole(role){ player.role=role; updateRoleAppearance(player); hudRole.textContent=role.toUpperCase(); if(mode==='match') setupAI(); }
+function setupAI(){ clearAI(); if(player.role==='attacker'){ ai.push(makeAI('red',new THREE.Vector3(-1.85,1.1,-.55),'defender'));ai.push(makeAI('red',new THREE.Vector3(-1.85,1.7,.55),'defender')); } else { ai.push(makeAI('red',new THREE.Vector3(-.8,1.2,0),'attacker'));ai.push(makeAI('red',new THREE.Vector3(-1.85,1.6,.55),'defender')); } ai.push(makeAI('blue',new THREE.Vector3(1.0,1.3,0),'attacker'));ai.push(makeAI('blue',new THREE.Vector3(1.75,1.15,-.55),'defender'));ai.push(makeAI('blue',new THREE.Vector3(1.75,1.75,.55),'defender')); }
+function nearestDefenders(team){ return [player,...ai].filter(d=>d.team===team&&d.role==='defender'); }
+function getAIDifficultyParams(){
+ const level=Math.max(1,Math.min(10,+(document.getElementById('aiDifficulty')?.value||5)));
+ const n=(level-1)/9;
+ return {
+   level,
+   n,
+   attackCruise:1.55+n*1.05,
+   attackBurst:1.85+n*1.25,
+   attackFinish:1.95+n*1.25,
+   attackResponse:1.35+n*1.65,
+   evadeRange:.52+n*.48,
+   evadeOffset:.28+n*.42,
+   finishRange:.88+n*.42,
+   defendCruise:1.15+n*1.15,
+   defendBurst:1.45+n*1.35,
+   defendResponse:1.45+n*1.75,
+   predictBase:.28+n*.42,
+   predictMax:.75+n*.95,
+   collapseRange:.70+n*.62,
+   coverBias:.16+n*.20
+ };
+}
+
+let cfg=null;
+function refreshAIDifficultyConfig(){ cfg=getAIDifficultyParams(); return cfg; }
+
+function updateAttackerAI(d,dt){
+ const cfg=refreshAIDifficultyConfig();
+const p=d.group.position;
+ const enemyTeam=d.team==='red'?'blue':'red';
+ const defenders=[player,...ai,...remoteDrones.values()].filter(q=>q!==d&&q.team===enemyTeam&&q.role==='defender');
+ const dir=d.team==='red'?1:-1, goalX=d.team==='red'?goals[1].center.x:goals[0].center.x;
+ let nearest=null,nd=99; for(const q of defenders){const ds=q.group.position.distanceTo(p);if(ds<nd){nd=ds;nearest=q}}
+ // Build a real attacking run: approach through a lane, then converge to the center of the opponent goal.
+ let target;
+ const distToGoal=Math.abs(goalX-p.x);
+ if(distToGoal>cfg.finishRange){
+   let lane=d.attackLane??(d.team==='red'?.62:-.62);
+   if(nearest&&nd<cfg.evadeRange){ const dz=p.z-nearest.group.position.z; if(Math.abs(dz)<.18)lane=(p.z>=nearest.group.position.z?cfg.evadeOffset:-cfg.evadeOffset); else lane=clamp(p.z+Math.sign(dz)*cfg.evadeOffset,-.98,.98); }
+   const attackY=nearest&&nd<cfg.evadeRange ? clamp(p.y+(nearest.group.position.y>p.y?-cfg.evadeOffset:cfg.evadeOffset),.55,3.35) : (d.team==='red'?1.45:2.55);
+   target=new THREE.Vector3(goalX-dir*.72,attackY,lane);
+ }else{
+   // Final scoring line aims just behind the goal plane, so the sphere must legally cross it from the field side.
+   target=new THREE.Vector3(goalX+dir*.26,GOAL_Y,0);
+ }
+ const delta=target.sub(p); if(delta.lengthSq()>1e-6){ const speed=distToGoal<cfg.finishRange?cfg.attackFinish:(nd<cfg.evadeRange?cfg.attackBurst:cfg.attackCruise); d.vel.lerp(delta.normalize().multiplyScalar(speed),Math.min(1,dt*cfg.attackResponse)); }
+}
+const oldUpdateAI=typeof updateAI==='function'?updateAI:null;
+updateAI=function(dt){
+ const cfg=refreshAIDifficultyConfig();
+ const allDrones=()=>[player,...ai];
+ function attackerOf(team){return allDrones().find(q=>q.team!==team&&q.role==='attacker');}
+ function defenderTarget(d){
+   const enemy=attackerOf(d.team);
+   const ownGoalX=d.team==='red'?-2:2;
+   const defendX=d.team==='red'?-1.48:1.48;
+   const side=(d.defenderLaneZ>=0)?1:-1;
+   if(!enemy) return new THREE.Vector3(defendX,d.defenderLaneY||1.4,side*.55);
+   const ep=enemy.group.position, ev=enemy.vel||new THREE.Vector3();
+   // Predict where the attacker will meet the defensive plane.
+   let t=cfg.predictBase;
+   if(Math.abs(ev.x)>.12){const tx=(defendX-ep.x)/ev.x;if(tx>0&&tx<cfg.predictMax)t=tx;}
+   const predY=clamp(ep.y+ev.y*t,.45,3.35);
+   const predZ=clamp(ep.z+ev.z*t,-1.12,1.12);
+   const sameSide=Math.sign(predZ||side)===side;
+   // One defender actively intercepts the projected lane; the other covers the far/goal lane.
+   let y,z,x=defendX;
+   if(sameSide){
+     z=clamp(predZ + side*cfg.coverBias,-1.08,1.08);
+     y=clamp(predY + (side>0?.12:-.12),.55,3.15);
+     x=defendX + (d.team==='red'?-.03:.03);
+   }else{
+     z=clamp(-side*.42 + predZ*.22,-.95,.95);
+     y=clamp(GOAL_Y + (side>0?.38:-.38),.65,3.05);
+     x=defendX + (d.team==='red'?.13:-.13);
+   }
+   // If attacker is already close, collapse toward a blocking line between attacker and goal.
+   const distGoal=Math.abs(ep.x-ownGoalX);
+   if(distGoal<cfg.collapseRange){z=clamp(predZ + side*(.10+cfg.coverBias),-1.05,1.05); y=clamp(predY + (side>0?cfg.coverBias:-cfg.coverBias),.55,3.2);}
+   return new THREE.Vector3(x,y,z);
+ }
+ for(const d of ai){
+   if(d.team==='blue'&&d.role==='attacker'){
+     if(Referee.retreatBlue){ const tx=new THREE.Vector3(.8,1.3,0); d.vel.lerp(tx.sub(d.group.position).normalize().multiplyScalar(1.7+getAIDifficultyParams().n*.8),dt*(1.7+getAIDifficultyParams().n*.9)); if(d.group.position.x>0){Referee.retreatBlue=false;refMessage.textContent='藍隊完成回場，可重新進攻';} }
+     else updateAttackerAI(d,dt);
+   }else if(d.team==='red'&&d.role==='attacker'){
+     if(Referee.retreatRed){ const tx=new THREE.Vector3(-.8,1.3,0); d.vel.lerp(tx.sub(d.group.position).normalize().multiplyScalar(1.6+getAIDifficultyParams().n*.8),dt*(1.7+getAIDifficultyParams().n*.9)); if(d.group.position.x<0){Referee.retreatRed=false;refMessage.textContent='紅隊完成回場，可重新進攻';} }
+     else updateAttackerAI(d,dt);
+   }else{
+     const target=defenderTarget(d);
+     const delta=target.sub(d.group.position);
+     if(delta.lengthSq()>1e-6){
+       const sp=delta.length()>.65?cfg.defendBurst:cfg.defendCruise;
+       d.vel.lerp(delta.normalize().multiplyScalar(sp),Math.min(1,dt*cfg.defendResponse));
+     }
+     // separation steering keeps the two defenders from sharing the same path/point
+     for(const other of ai){if(other===d||other.team!==d.team||other.role!=='defender')continue;const sep=d.group.position.clone().sub(other.group.position);const dist=sep.length();if(dist>0&&dist<.48)d.vel.addScaledVector(sep.normalize(),(.48-dist)*3.2*dt);}
+   }
+   d.group.position.addScaledVector(d.vel,dt);
+   if(d.vel.lengthSq()>.01){d.yaw=Math.atan2(-d.vel.z,d.vel.x);d.group.rotation.y=d.yaw;}
+   resolveCage(d); goals.forEach(g=>resolveGoal(d,g));
+ }
+ for(const d of ai)sphereCollision(player,d);
+ for(let i=0;i<ai.length;i++)for(let j=i+1;j<ai.length;j++)sphereCollision(ai[i],ai[j]);
+ refereeTick(dt);
+};
+function inGoalHangZone(d){ const ownX=d.team==='red'?-2:2; return d.role==='defender'&&Math.abs(d.group.position.x-ownX)<.28&&Math.hypot(d.group.position.y-GOAL_Y,d.group.position.z)<.28; }
+function refereeTick(dt){
+ if(!matchRunning)return;
+ if(netPeer&&!isHost){uiRef();return;}
+ const now=performance.now();
+ const drones=[player,...ai,...remoteDrones.values()].filter(d=>d&&d.group);
+ const attackers=drones.filter(d=>d.role==='attacker'), defenders=drones.filter(d=>d.role==='defender');
+ // Network-safe contact inference: if a defender is physically touching an opponent attacker, grant a short pushed-in exemption.
+ for(const def of defenders)for(const atk of attackers){ if(def.team===atk.team)continue; if(def.group.position.distanceTo(atk.group.position)<=def.radius+atk.radius+.045)def.pushedByAttackerUntil=now+1100; }
+ for(const d of defenders){
+   const x=d.group.position.x; if(typeof d.prevOwnGoalX!=='number')d.prevOwnGoalX=x;
+   d.ownGoalFoulCooldown=Math.max(0,(d.ownGoalFoulCooldown||0)-dt);
+   const goalX=d.team==='red'?goals[0].center.x:goals[1].center.x;
+   const inside=Math.hypot(d.group.position.y-GOAL_Y,d.group.position.z)<GOAL_R-d.radius*.45;
+   const entered=inside && (d.team==='red' ? (d.prevOwnGoalX>=goalX && x<goalX) : (d.prevOwnGoalX<=goalX && x>goalX));
+   if(entered&&d.ownGoalFoulCooldown<=0){
+     if((d.pushedByAttackerUntil||0)>=now){ refMessage.textContent=`${d.team==='red'?'紅隊':'藍隊'}防守手被進攻手撞入己方球門｜不判犯規`; }
+     else { addFoul(d.team,'防守手主動進入己方球門',false,d); }
+     d.ownGoalFoulCooldown=1.0;
+   }
+   d.prevOwnGoalX=x;
+ }
+ if(Referee.penaltyTeam){Referee.penaltyTimer=Math.max(0,Referee.penaltyTimer-dt);refMessage.textContent=`Penalty Shot：${Referee.penaltyTeam==='red'?'紅隊':'藍隊'} ${Referee.penaltyTimer.toFixed(1)} 秒`;if(Referee.penaltyTimer<=0){Referee.penaltyTeam=null;Referee.state='PLAY';refMessage.textContent='Penalty Shot 結束｜恢復正常比賽';}}
+ uiRef();
+}
+const oldScoreCheck=scoreCheck;
+scoreCheck=function(){
+ if(netPeer&&!isHost)return;
+ const attackers=[player,...ai,...remoteDrones.values()].filter(d=>d.role==='attacker');
+ for(const d of attackers){
+   if(typeof d.prevScoreX!=='number') d.prevScoreX=d.group.position.x;
+   if(d.illegalGoalCooldown>0)d.illegalGoalCooldown=Math.max(0,d.illegalGoalCooldown-.016);
+   const x=d.group.position.x, prev=d.prevScoreX;
+   const inside=Math.hypot(d.group.position.y-GOAL_Y,d.group.position.z)<GOAL_R-d.radius*.5;
+   const isRed=d.team==='red';
+   const goalX=isRed?goals[1].center.x:goals[0].center.x;
+   // Legal goal: cross the goal plane from field side toward the back of opponent goal.
+   const legalCross=inside && (isRed ? (prev<=goalX && x>goalX) : (prev>=goalX && x<goalX));
+   // Illegal reverse entry: approach from behind opponent goal and cross back into the field through the ring.
+   const reverseCross=inside && (isRed ? (prev>goalX && x<=goalX) : (prev<goalX && x>=goalX));
+   const retreat=isRed?Referee.retreatRed:Referee.retreatBlue;
+   if(reverseCross && d.illegalGoalCooldown<=0){
+     addFoul(d.team,'反向穿越對方球門：不計分',false,d);
+     d.illegalGoalCooldown=.8;
+     d.vel.multiplyScalar(.35);
+   }else if(legalCross && !retreat){
+     recordDroneGoal(d);
+     if(isRed){score.red++;Referee.retreatRed=true;Referee.state='RETREAT';refMessage.textContent='紅隊得分：進攻手必須自行回到己方半場';}
+     else {score.blue++;Referee.retreatBlue=true;Referee.state='RETREAT';refMessage.textContent='藍隊得分：進攻手必須自行回到己方半場';}
+     d.vel.multiplyScalar(.45);
+   }
+   d.prevScoreX=x;
+ }
+ if(Referee.retreatRed){ const redAtt=attackers.find(d=>d.team==='red'); if(redAtt&&redAtt.group.position.x<0){Referee.retreatRed=false;Referee.state='PLAY';refMessage.textContent='紅隊完成回場，可重新進攻';} }
+ if(Referee.retreatBlue){ const blueAtt=attackers.find(d=>d.team==='blue'); if(blueAtt&&blueAtt.group.position.x>0){Referee.retreatBlue=false;Referee.state='PLAY';refMessage.textContent='藍隊完成回場，可重新進攻';} }
+};
+function startScoreStats(){ scoreStats={start:performance.now(),hits:0,maxDev:0,cover:0,safety:true,result:'進行中',origin:player.group.position.clone(),visited:new Set()}; if(typeof scorePanel!=='undefined')scorePanel.style.display='block'; }
+const oldImpact=impact;
+impact=function(d,imp,label){ oldImpact(d,imp,label); if(mode==='academy'&&d===player){scoreStats.hits++; if(label!=='地面'&&label!=='邊界')scoreStats.safety=false;} };
+function routeDeviation(){ if(!activeLevel)return 0; const p=player.group.position; const id=activeLevel[0]; let dev=0; if([2,17].includes(id))dev=Math.hypot(p.y-1.2,p.z); else if(id===3)dev=Math.hypot(p.y-1.2,p.x); else if([11,12].includes(id)){const r=Math.hypot(p.x,p.z);dev=Math.hypot(r-.9,p.y-1.2);} else dev=p.distanceTo(scoreStats.origin); scoreStats.maxDev=Math.max(scoreStats.maxDev,dev); return dev; }
+function updateScoreUI(){ if(mode!=='academy'||!activeLevel)return; const sec=(performance.now()-scoreStats.start)/1000; routeDeviation(); if(typeof routeVisited!=='undefined'&&routeVisited.size)scoreStats.cover=Math.round(routeVisited.size/Math.max(1,routeSegmentCount||routeVisited.size)*100); scoreTime.textContent=sec.toFixed(1)+'s';scoreHits.textContent=scoreStats.hits;scoreDev.textContent=Math.round(scoreStats.maxDev*100)+'cm';scoreCover.textContent=(scoreStats.cover||0)+'%';scoreSafety.textContent=scoreStats.safety?'PASS':'CHECK';scoreResult.textContent=scoreStats.result; }
+const oldPass=pass;
+pass=function(){ scoreStats.result='合格'; updateScoreUI(); oldPass(); if(typeof scoreResult!=='undefined')scoreResult.textContent='合格'; };
+if(typeof loadLevel!=='undefined')loadLevel.addEventListener('click',()=>setTimeout(startScoreStats,0));
+if(typeof roleSelect!=='undefined')roleSelect.addEventListener('change',()=>setRole(roleSelect.value));
+
+
+
+// ===== V12 browser multiplayer / series match =====
+let PeerClass=null, netPeer=null, hostConn=null, isHost=false, localReady=false;
+const PEER_OPTIONS={host:'0.peerjs.com',port:443,path:'/',secure:true,debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
+let hostOnline=false,joinRetryTimer=null;
+const netConnections=new Map(), netPlayers=new Map(), remoteDrones=new Map();
+const series={bestOf:3,roundMinutes:3,restMinutes:2,wins:{red:0,blue:0},round:0,history:[],phase:'lobby',restLeft:0,needed:2,lineup:[]};
+const droneStats={};
+let lastValidTeam='red',lastValidRole='attacker';
+let myEffectiveRole=null;let restOverlay=null,restCountdown=null,restSummary=null,restStats=null,restBroadcastAcc=0;
+function roomPeerId(code){return 'ds-'+code.toLowerCase()+'-v122';}
+function makeRoomCode(){return Math.random().toString(36).slice(2,8).toUpperCase();}
+async function ensurePeer(){
+ if(PeerClass)return true;
+ try{const mod=await import('https://cdn.jsdelivr.net/npm/peerjs@1.5.5/+esm');PeerClass=mod.Peer||mod.default;return !!PeerClass;}
+ catch(e){netStatus.textContent='PeerJS 載入失敗：'+(e?.message||e);return false;}
+}
+function myNetProfile(){return {id:netPeer?.id||'local',name:(playerName.value||'Player').slice(0,20),team:netTeam.value,role:netRole.value,ready:localReady};}
+
+function rosterProfiles(){
+ return [myNetProfile(),...netPlayers.values()].filter((v,i,a)=>v&&v.id&&a.findIndex(x=>x.id===v.id)===i);
+}
+function roleCapacity(role){return role==='attacker'?1:2;}
+function roleUsage(team,role,excludeId=null){return rosterProfiles().filter(p=>p.id!==excludeId&&p.team===team&&p.role===role).length;}
+function roleAvailable(team,role,excludeId=null){return roleUsage(team,role,excludeId)<roleCapacity(role);}
+function updateRoleAvailability(){
+ const me=netPeer?.id||'local',team=netTeam.value;
+ const atk=document.getElementById('netRoleAttacker'),def=document.getElementById('netRoleDefender');
+ if(atk)atk.disabled=!roleAvailable(team,'attacker',me)&&netRole.value!=='attacker';
+ if(def)def.disabled=!roleAvailable(team,'defender',me)&&netRole.value!=='defender';
+ // If the currently selected seat has become occupied, keep it visibly selected but mark it invalid.
+ const valid=roleAvailable(team,netRole.value,me);
+ netRole.style.opacity=valid?'1':'.55';
+ netRole.title=valid?'可選擇':'此隊伍的此角色席位已被其他玩家選走';
+ return valid;
+}
+function sendToPeer(id,msg){const c=netConnections.get(id);if(c?.open)try{c.send(msg)}catch{}}
+function profileAccepted(profile,excludeId=null){return roleAvailable(profile.team,profile.role,excludeId||profile.id);}
+function renderPlayerList(){
+ const rows=[myNetProfile(),...netPlayers.values()].filter((v,i,a)=>a.findIndex(x=>x.id===v.id)===i);
+ playerList.innerHTML=rows.map(p=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0"><span>${p.name}</span><span>${p.team==='red'?'🔴':'🔵'} ${p.role==='attacker'?'進攻':'防守'} ${p.ready?'✓ READY':'等待'}</span></div>`).join('')||'尚無玩家';
+ startSeries.disabled=!(isHost&&rows.length>=2&&rows.every(p=>p.ready));
+ updateRoleAvailability();
+}
+function broadcast(msg,except=null){for(const [id,c] of netConnections){if(id!==except&&c.open)try{c.send(msg)}catch{}}}
+function sendHost(msg){if(isHost)handleNetMessage(msg,netPeer?.id||'host');else if(hostConn?.open)hostConn.send(msg);}
+function addRemoteDrone(profile){
+ if(profile.id===netPeer?.id||remoteDrones.has(profile.id))return;
+ const d=makeDrone(profile.team==='red'?0xff545c:0x4da3ff);d.team=profile.team;d.role=profile.effectiveRole||profile.role;updateTeamAppearance(d);updateRoleAppearance(d);registerDroneStat(d,profile.id,profile.name||'連線玩家');d.group.position.set(0,1.2,0);remoteDrones.set(profile.id,d);
+}
+const MATCH_SLOTS={
+ red:[
+  {role:'attacker',pos:[-1.05,1.35,0]},
+  {role:'defender',pos:[-2.05,1.05,-0.55]},
+  {role:'defender',pos:[-2.05,1.75,0.55]}
+ ],
+ blue:[
+  {role:'attacker',pos:[1.05,1.35,0]},
+  {role:'defender',pos:[2.05,1.05,0.55]},
+  {role:'defender',pos:[2.05,1.75,-0.55]}
+ ]
+};
+function buildMatchLineup(){
+ const humans=[myNetProfile(),...netPlayers.values()].filter((v,i,a)=>a.findIndex(x=>x.id===v.id)===i);
+ const lineup=[];
+ for(const team of ['red','blue']){
+   const members=humans.filter(p=>p.team===team).slice(0,3);
+   const slots=MATCH_SLOTS[team];
+   const used=new Set();
+   // First, honor one requested attacker and up to two requested defenders.
+   const atk=members.find(p=>p.role==='attacker');
+   if(atk){lineup.push({...atk,effectiveRole:'attacker',slot:0});used.add(atk.id);}
+   let di=1;
+   for(const m of members.filter(p=>p.role==='defender')){if(di>2)break;lineup.push({...m,effectiveRole:'defender',slot:di++});used.add(m.id);}
+   // Fill remaining humans into free legal slots; duplicate attackers become defenders.
+   for(const m of members){if(used.has(m.id))continue;let slot=[0,1,2].find(i=>!lineup.some(x=>x.team===team&&x.slot===i));if(slot==null)continue;lineup.push({...m,effectiveRole:slots[slot].role,slot});used.add(m.id);}
+ }
+ return lineup;
+}
+function clearRemoteDrones(){for(const id of [...remoteDrones.keys()])removeRemoteDrone(id);}
+function applyMultiplayerLineup(lineup){
+ clearAI(); clearRemoteDrones(); myEffectiveRole=null;
+ const assigned=new Set();
+ for(const entry of lineup||[]){
+   const slot=MATCH_SLOTS[entry.team]?.[entry.slot]; if(!slot)continue;
+   assigned.add(entry.team+':'+entry.slot);
+   if(entry.id===netPeer?.id){
+     player.team=entry.team;player.role=entry.effectiveRole;myEffectiveRole=entry.effectiveRole;player.retreatRequired=false;updateTeamAppearance(player);updateRoleAppearance(player);registerDroneStat(player,entry.id,entry.name||'本機玩家');
+     player.group.position.set(...slot.pos);player.vel.set(0,0,0);player.yaw=entry.team==='red'?0:Math.PI;player.group.rotation.y=player.yaw;
+     hudRole.textContent=entry.effectiveRole.toUpperCase();
+   }else{
+     const profile={...entry,role:entry.effectiveRole};addRemoteDrone(profile);const d=remoteDrones.get(entry.id);if(d){d.team=entry.team;d.role=entry.effectiveRole;updateTeamAppearance(d);updateRoleAppearance(d);registerDroneStat(d,entry.id,entry.name||'連線玩家');d.group.position.set(...slot.pos);d.vel.set(0,0,0);d.yaw=entry.team==='red'?0:Math.PI;d.group.rotation.y=d.yaw;}
+   }
+ }
+ // Every unused official 3v3 slot is filled by exactly one AI.
+ for(const team of ['red','blue'])for(let i=0;i<3;i++){
+   if(assigned.has(team+':'+i))continue;
+   const slot=MATCH_SLOTS[team][i];const bot=makeAI(team,new THREE.Vector3(...slot.pos),slot.role);registerDroneStat(bot,`ai-${team}-${i}`,`${team==='red'?'紅':'藍'}隊 AI ${slot.role==='attacker'?'進攻':'防守'+i}`);ai.push(bot);
+ }
+}
+function removeRemoteDrone(id){const d=remoteDrones.get(id);if(d){scene.remove(d.group);remoteDrones.delete(id)}}
+function syncRemoteState(id,st){
+ let d=remoteDrones.get(id);if(!d)return;
+ d.group.position.set(st.x,st.y,st.z);d.yaw=st.yaw;d.group.rotation.y=st.yaw;
+ const oldTeam=d.team,oldRole=d.role;
+ d.role=st.role||d.role;d.team=st.team||d.team;
+ if(d.team!==oldTeam)updateTeamAppearance(d);
+ if(d.role!==oldRole)updateRoleAppearance(d);
+}
+
+function ensureRestOverlay(){
+ if(restOverlay)return;
+ restOverlay=document.createElement('div');restOverlay.id='restOverlay';
+ restOverlay.style.cssText='position:absolute;inset:0;z-index:45;display:none;align-items:center;justify-content:center;background:rgba(5,12,20,.78);backdrop-filter:blur(4px);';
+ restOverlay.innerHTML=`<div style="min-width:310px;max-width:520px;padding:24px 28px;border:1px solid #49667d;border-radius:16px;background:#0b1722;color:#fff;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.35)"><div style="font-size:13px;letter-spacing:.14em;color:#9fc6de">INTERMISSION</div><div style="font-size:28px;font-weight:800;margin:8px 0">中場休息</div><div id="restSummary" style="font-size:16px;margin-bottom:12px;color:#dceaf3"></div><div id="restCountdown" style="font-size:44px;font-weight:900;font-variant-numeric:tabular-nums">--:--</div><div id="restStats" style="margin-top:14px;text-align:left;max-height:250px;overflow:auto"></div><div style="margin-top:8px;color:#a9bdca">下一局將自動開始</div></div>`;
+ const parent=viewport.parentElement||document.body; if(getComputedStyle(parent).position==='static')parent.style.position='relative';parent.appendChild(restOverlay);
+ restCountdown=restOverlay.querySelector('#restCountdown');restSummary=restOverlay.querySelector('#restSummary');restStats=restOverlay.querySelector('#restStats');
+}
+function fmtRest(sec){sec=Math.max(0,Math.ceil(sec||0));return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');}
+function showRestOverlay(){ensureRestOverlay();restOverlay.style.display='flex';restCountdown.textContent=fmtRest(series.restLeft);const last=series.history[series.history.length-1];restSummary.textContent=last?`第 ${last.round} 局：紅 ${last.red} : ${last.blue} 藍｜系列賽 紅 ${series.wins.red} : ${series.wins.blue} 藍`:`系列賽 紅 ${series.wins.red} : ${series.wins.blue} 藍`;if(restStats)restStats.innerHTML='<div style="font-weight:800;margin-bottom:6px">本局 / 累積量化</div>'+statsTableHTML(last?.droneStats||snapshotDroneStats());}
+function hideRestOverlay(){if(restOverlay)restOverlay.style.display='none';}
+
+function handleNetMessage(msg,from){
+ if(!msg||typeof msg!=='object')return;
+ if(msg.type==='hello'){
+   if(isHost&&!profileAccepted(msg.profile,msg.profile.id)){sendToPeer(from,{type:'profileRejected',reason:'你選擇的角色已被其他玩家占用，請改選可用角色',profile:null,roster:[myNetProfile(),...netPlayers.values()]});renderPlayerList();}
+   else {netPlayers.set(msg.profile.id,msg.profile);renderPlayerList();if(isHost){broadcast({type:'roster',players:[myNetProfile(),...netPlayers.values()]});}}
+ }
+ if(msg.type==='roster'){
+   netPlayers.clear();for(const p of msg.players){if(p.id!==netPeer?.id){netPlayers.set(p.id,p)}}renderPlayerList();
+ }
+ if(msg.type==='profile'){
+   if(isHost&&!profileAccepted(msg.profile,msg.profile.id)){sendToPeer(from,{type:'profileRejected',reason:'該隊伍的此角色席位已滿',profile:netPlayers.get(msg.profile.id)||null,roster:[myNetProfile(),...netPlayers.values()]});return;}
+   netPlayers.set(msg.profile.id,msg.profile);renderPlayerList();if(isHost){broadcast(msg,from);broadcast({type:'roster',players:[myNetProfile(),...netPlayers.values()]});}
+ }
+ if(msg.type==='profileRejected'){netStatus.textContent='⛔ '+(msg.reason||'角色席位已被選走');if(msg.profile){netTeam.value=msg.profile.team;netRole.value=msg.profile.role;lastValidTeam=msg.profile.team;lastValidRole=msg.profile.role;}if(msg.roster){netPlayers.clear();for(const p of msg.roster){if(p.id!==netPeer?.id)netPlayers.set(p.id,p);} }localReady=false;readyBtn.textContent='我已準備';renderPlayerList();}
+ if(msg.type==='state'){syncRemoteState(msg.id,msg.state);if(isHost)broadcast(msg,from);}
+ if(msg.type==='seriesConfig'){Object.assign(series,msg.series);series.needed=Math.floor(series.bestOf/2)+1;updateSeriesUI();}
+ if(msg.type==='seriesStart'){Object.assign(series,msg.series);hideRestOverlay();setMode('match');applyMultiplayerLineup(series.lineup||[]);updateTeamAppearance(player);updateRoleAppearance(player);resetRoundDroneStats();score={red:0,blue:0};resetGoalPlaneTracking();matchTime=series.roundMinutes*60;matchRunning=true;player.armed=true;multiModal.style.display='none';status.textContent=`多人系列賽 第 ${series.round} 局開始`;updateSeriesUI();updateHUD();}
+ if(msg.type==='score'){score=msg.score;if(msg.droneStats){for(const s of msg.droneStats)droneStats[s.id]={...s};}redScore.textContent=score.red;blueScore.textContent=score.blue;}
+ if(msg.type==='refereeSync'){
+   Referee.redFouls=msg.redFouls??Referee.redFouls;
+   Referee.blueFouls=msg.blueFouls??Referee.blueFouls;
+   Referee.state=msg.state||Referee.state;
+   Referee.penaltyTeam=msg.penaltyTeam??Referee.penaltyTeam;
+   Referee.penaltyTimer=msg.penaltyTimer??Referee.penaltyTimer;
+   if(msg.message)refMessage.textContent=msg.message;
+   if(msg.droneStats){for(const s of msg.droneStats)droneStats[s.id]={...s};}
+   uiRef();
+ }
+ if(msg.type==='roundEnd'){Object.assign(series,msg.series);matchRunning=false;player.armed=false;updateSeriesUI();if(series.phase==='rest'){status.textContent=`中場休息 ${Math.ceil(series.restLeft)} 秒`;showRestOverlay();}}
+ if(msg.type==='restTick'){series.restLeft=msg.restLeft;series.phase='rest';showRestOverlay();updateSeriesUI();}
+ if(msg.type==='seriesEnd'){Object.assign(series,msg.series);hideRestOverlay();showSeriesResult();}
+}
+function attachConn(conn){
+ netConnections.set(conn.peer,conn);
+ conn.on('data',m=>handleNetMessage(m,conn.peer));
+ conn.on('close',()=>{netConnections.delete(conn.peer);netPlayers.delete(conn.peer);removeRemoteDrone(conn.peer);renderPlayerList()});
+ conn.on('open',()=>{conn.send({type:'hello',profile:myNetProfile()});});
+}
+function describePeerError(e){
+ const t=e?.type||'unknown';
+ if(t==='peer-unavailable')return '找不到主機：請確認主機畫面已顯示「房間已上線」，房間碼正確，且兩台裝置都能連上網際網路。系統將自動重試。';
+ if(t==='network')return 'PeerJS 網路連線失敗：Wi‑Fi 有連線不代表可連外，請確認可上網或更換網路。';
+ if(t==='server-error'||t==='socket-error')return 'PeerJS 信令伺服器目前無法使用，請稍後重試或更換網路。';
+ if(t==='unavailable-id')return '這個房間 ID 已被占用，請重新建立房間。';
+ if(t==='webrtc')return 'WebRTC 建立失敗，可能是瀏覽器、VPN、防火牆或 NAT 限制。';
+ return '連線錯誤：'+t;
+}
+function teardownNet(){
+ hostOnline=false;
+ if(joinRetryTimer){clearTimeout(joinRetryTimer);joinRetryTimer=null;}
+ if(hostConn)try{hostConn.close()}catch{}
+ hostConn=null;
+ if(netPeer)try{netPeer.destroy()}catch{}
+ netPeer=null;
+}
+async function hostMultiplayer(){
+ if(!(await ensurePeer()))return;
+ const code=makeRoomCode();roomCode.textContent=code;roomCodeInput.value=code;isHost=true;localReady=false;
+ teardownNet(); isHost=true;
+ netStatus.textContent='正在向信令伺服器註冊房間…';
+ try{netPeer=new PeerClass(roomPeerId(code),PEER_OPTIONS);}catch(e){netStatus.textContent='建立房間失敗：'+(e?.message||e);return;}
+ netPeer.on('open',()=>{hostOnline=true;netStatus.innerHTML='✅ 房間已上線：<b>'+code+'</b>｜現在可讓其他裝置加入';renderPlayerList()});
+ netPeer.on('connection',attachConn);
+ netPeer.on('disconnected',()=>{hostOnline=false;netStatus.textContent='主機與信令服務中斷，正在嘗試恢復…';try{netPeer.reconnect()}catch{}});
+ netPeer.on('error',e=>{hostOnline=false;netStatus.textContent=describePeerError(e)});
+}
+async function joinMultiplayer(){
+ if(!(await ensurePeer()))return;
+ const code=roomCodeInput.value.trim().toUpperCase();if(!code){netStatus.textContent='請輸入房間碼';return}
+ isHost=false;localReady=false;teardownNet();isHost=false;
+ netStatus.textContent='正在連線到房間 '+code+'…';
+ try{netPeer=new PeerClass(undefined,PEER_OPTIONS);}catch(e){netStatus.textContent='建立本機連線失敗：'+(e?.message||e);return;}
+ let tries=0;
+ const tryConnect=()=>{
+   tries++;
+   if(!netPeer||netPeer.destroyed)return;
+   netStatus.textContent='正在尋找主機 '+code+'（第 '+tries+'/6 次）…';
+   try{hostConn=netPeer.connect(roomPeerId(code),{reliable:true,serialization:'json'});}catch(e){netStatus.textContent='連線建立失敗：'+(e?.message||e);return;}
+   let opened=false;
+   const timeout=setTimeout(()=>{if(!opened){try{hostConn.close()}catch{}; if(tries<6)joinRetryTimer=setTimeout(tryConnect,900); else netStatus.textContent='❌ 仍找不到主機。請確認主機已顯示「房間已上線」，並確認兩台裝置都可連上網際網路。';}},2500);
+   hostConn.on('open',()=>{opened=true;clearTimeout(timeout);netStatus.textContent='✅ 已加入房間 '+code;hostConn.send({type:'hello',profile:myNetProfile()});renderPlayerList()});
+   hostConn.on('data',m=>handleNetMessage(m,hostConn.peer));
+   hostConn.on('close',()=>{if(opened)netStatus.textContent='已與主機斷線';});
+   hostConn.on('error',e=>{clearTimeout(timeout);if(e?.type==='peer-unavailable'&&tries<6){joinRetryTimer=setTimeout(tryConnect,900);}else if(tries>=6||e?.type!=='peer-unavailable'){netStatus.textContent=describePeerError(e);}});
+ };
+ netPeer.on('open',()=>tryConnect());
+ netPeer.on('error',e=>{if(e?.type!=='peer-unavailable')netStatus.textContent=describePeerError(e)});
+}
+function updateProfileNet(){
+ const me=netPeer?.id||'local';
+ if(!roleAvailable(netTeam.value,netRole.value,me)){netStatus.textContent='⛔ 此隊伍的「'+(netRole.value==='attacker'?'進攻手':'防守手')+'」席位已滿，請選擇其他可用角色。';localReady=false;readyBtn.textContent='我已準備';updateRoleAvailability();return;}
+ lastValidTeam=netTeam.value;lastValidRole=netRole.value;
+ if(!netPeer){renderPlayerList();return;}const msg={type:'profile',profile:myNetProfile()};sendHost(msg);renderPlayerList();}
+function seriesConfigFromUI(){series.bestOf=+seriesBestOf.value;series.roundMinutes=+roundMinutes.value;series.restMinutes=+restMinutes.value;series.needed=Math.floor(series.bestOf/2)+1;series.wins={red:0,blue:0};series.round=0;series.history=[];series.phase='lobby';}
+function updateSeriesUI(){seriesState.textContent=`${series.phase.toUpperCase()}｜局 ${series.round}｜紅 ${series.wins.red} : ${series.wins.blue} 藍`;}
+function startSeriesHost(){if(!isHost)return;hideRestOverlay();seriesConfigFromUI();series.round=1;series.phase='play';series.lineup=buildMatchLineup();setMode('match');applyMultiplayerLineup(series.lineup);updateTeamAppearance(player);updateRoleAppearance(player);resetRoundDroneStats();score={red:0,blue:0};resetGoalPlaneTracking();matchTime=series.roundMinutes*60;matchRunning=true;player.armed=true;multiModal.style.display='none';const msg={type:'seriesStart',series:{...series,wins:{...series.wins},history:[...series.history],lineup:series.lineup.map(x=>({...x}))}};broadcast(msg);updateSeriesUI();updateHUD();status.textContent='多人系列賽開始';}
+function finishRoundHost(){
+ if(!isHost||series.phase!=='play')return;
+ const winner=score.red===score.blue?'draw':score.red>score.blue?'red':'blue';
+ if(winner!=='draw')series.wins[winner]++;
+ const roundDroneStats=snapshotDroneStats();series.history.push({round:series.round,red:score.red,blue:score.blue,winner,droneStats:roundDroneStats});
+ if(series.wins.red>=series.needed||series.wins.blue>=series.needed){series.phase='finished';broadcast({type:'seriesEnd',series:{...series,wins:{...series.wins},history:[...series.history]}});showSeriesResult();return;}
+ series.phase='rest';series.restLeft=series.restMinutes*60;matchRunning=false;player.armed=false;broadcast({type:'roundEnd',series:{...series,wins:{...series.wins},history:[...series.history]}});updateSeriesUI();showRestOverlay();status.textContent=`中場休息 ${Math.ceil(series.restLeft)} 秒`;
+}
+function startNextRoundHost(){hideRestOverlay();series.round++;series.phase='play';setMode('match');applyMultiplayerLineup(series.lineup||[]);updateTeamAppearance(player);updateRoleAppearance(player);resetRoundDroneStats();score={red:0,blue:0};resetGoalPlaneTracking();matchTime=series.roundMinutes*60;matchRunning=true;player.armed=true;multiModal.style.display='none';broadcast({type:'seriesStart',series:{...series,wins:{...series.wins},history:[...series.history],lineup:(series.lineup||[]).map(x=>({...x}))}});updateSeriesUI();updateHUD();status.textContent=`第 ${series.round} 局開始`; }
+function showSeriesResult(){
+ hideRestOverlay();
+ const win=series.wins.red>series.wins.blue?'紅隊':'藍隊';
+ const totalRed=series.history.reduce((sum,r)=>sum+(r.red||0),0);
+ const totalBlue=series.history.reduce((sum,r)=>sum+(r.blue||0),0);
+ winnerTitle.textContent=`${win} 勝利`;
+ winnerSummary.innerHTML=`
+   <div style="display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:8px">
+     <div><span class="small">系列賽</span><div style="font-size:22px;font-weight:900">紅 ${series.wins.red} : ${series.wins.blue} 藍</div></div>
+     <div><span class="small">總得分</span><div style="font-size:22px;font-weight:900">紅 ${totalRed} : ${totalBlue} 藍</div></div>
+   </div>`;
+
+ roundHistory.innerHTML=series.history.map((r,idx)=>`
+   <details style="margin:8px 0;border:1px solid #2b4358;border-radius:10px;background:#0d1b28;overflow:hidden">
+     <summary style="cursor:pointer;padding:10px 12px;display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:800;list-style:none">
+       <span>第 ${r.round||idx+1} 局</span>
+       <span>紅 ${r.red} : ${r.blue} 藍</span>
+       <span style="font-size:12px;opacity:.8">${r.winner==='draw'?'平手':r.winner==='red'?'紅隊勝':'藍隊勝'} ▾</span>
+     </summary>
+     <div style="padding:0 10px 10px">
+       ${statsTableHTML(r.droneStats||[])}
+     </div>
+   </details>
+ `).join('');
+
+ const finalStats=document.getElementById('seriesDroneStats');
+ if(finalStats)finalStats.innerHTML='';
+ seriesOverlay.style.display='flex';
+}
+function netTick(dt){
+ if(netPeer&&mode==='match'){
+   netTick.acc=(netTick.acc||0)+dt;if(netTick.acc>.05){netTick.acc=0;const p=player.group.position;const msg={type:'state',id:netPeer.id,state:{x:p.x,y:p.y,z:p.z,yaw:player.yaw,team:player.team,role:player.role}};sendHost(msg);}
+ }
+ if(isHost&&series.phase==='play'&&matchRunning){broadcast({type:'score',score:{...score},droneStats:snapshotDroneStats()});if(matchTime<=0)finishRoundHost();}
+ if(series.phase==='rest'){series.restLeft=Math.max(0,series.restLeft-dt);showRestOverlay();if(restCountdown)restCountdown.textContent=fmtRest(series.restLeft);seriesState.textContent=`REST｜下一局 ${Math.ceil(series.restLeft)} 秒｜紅 ${series.wins.red}:${series.wins.blue} 藍`;status.textContent=`中場休息｜下一局 ${fmtRest(series.restLeft)}`;if(isHost){restBroadcastAcc+=dt;if(restBroadcastAcc>=1){restBroadcastAcc=0;broadcast({type:'restTick',restLeft:series.restLeft});}if(series.restLeft<=0)startNextRoundHost();}}
+}
+openMulti.addEventListener('click',()=>{multiModal.style.display='flex';renderPlayerList();updateRoleAvailability();});closeMulti.addEventListener('click',()=>multiModal.style.display='none');hostRoom.addEventListener('click',hostMultiplayer);joinRoom.addEventListener('click',joinMultiplayer);
+readyBtn.addEventListener('click',()=>{if(!updateRoleAvailability()){netStatus.textContent='⛔ 目前角色席位已被占用，請先改選可用角色。';return;}localReady=!localReady;readyBtn.textContent=localReady?'取消準備':'我已準備';updateProfileNet()});
+[playerName,netTeam,netRole].forEach(el=>el.addEventListener('change',updateProfileNet));[seriesBestOf,roundMinutes,restMinutes].forEach(el=>el.addEventListener('change',()=>{if(isHost){seriesConfigFromUI();broadcast({type:'seriesConfig',series:{...series,wins:{...series.wins},history:[...series.history]}});updateSeriesUI()}}));
+startSeries.addEventListener('click',startSeriesHost);closeResult.addEventListener('click',()=>seriesOverlay.style.display='none');
+
+setMode('free'); setView('third'); viewport.focus();
+function animate(){
+ try{
+   const dt=Math.min(.03,clock3.getDelta());
+   updatePlayer(dt);
+   if(mode==='match'){ updateAI(dt); if(matchRunning){ matchTime=Math.max(0,matchTime-dt); scoreCheck(); if(matchTime<=0&&series.phase!=='play'){ matchRunning=false; player.armed=false; status.textContent='本局結束'; } } }
+   if(mode==='academy')academyCheck();
+   netTick(dt);
+   updateCamera(); updateHUD(); updateControllerUI(); renderer.render(scene,camera);
+ }catch(err){ console.error('Render loop error:',err); status.textContent='執行錯誤：'+(err?.message||String(err)); }
+ requestAnimationFrame(animate);
+}
+animate();
+
+</script>
+
+<div id="creatorCredit" style="
+  position:fixed;
+  right:10px;
+  bottom:8px;
+  z-index:9999;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.3px;
+  color:rgba(255,255,255,.72);
+  background:rgba(5,12,20,.48);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:8px;
+  padding:5px 8px;
+  pointer-events:none;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+">製作人：李宇軒 / Xuan</div>
+
+
+
+
+<script>
+(function(){
+  function setupV132Sidebar(){
+    const side=document.getElementById('sidePanel');
+    if(!side || side.dataset.v132==='1') return;
+    side.dataset.v132='1';
+
+    // Unwrap any existing top-level fold wrappers from older versions.
+    [...side.querySelectorAll(':scope > details')].forEach(d=>{
+      const body=d.querySelector(':scope > .foldBody, :scope > .masterSettingsBody');
+      if(!body) return;
+      [...body.children].forEach(n=>side.insertBefore(n,d));
+      d.remove();
+    });
+
+    const all=[...side.children];
+
+    // Identify score/time block and reset button.
+    const scoreBlock = all.find(el=>{
+      const t=(el.textContent||'').replace(/\s+/g,' ');
+      return t.includes('RED') && t.includes('BLUE') && t.includes('時間');
+    }) || null;
+
+    let resetBtn = side.querySelector('#resetBtn, button[data-action="reset"], button');
+    // Prefer button whose label explicitly says reset drone.
+    const resetCandidate=[...side.querySelectorAll('button')].find(b=>(b.textContent||'').includes('重置無人機'));
+    if(resetCandidate) resetBtn=resetCandidate;
+
+    const shell=document.createElement('div');
+    shell.className='compactScoreShell';
+
+    if(scoreBlock){
+      scoreBlock.parentNode.insertBefore(shell,scoreBlock);
+      shell.appendChild(scoreBlock);
+    }else{
+      side.insertBefore(shell,side.firstChild);
+    }
+
+    if(resetBtn){
+      const row=document.createElement('div');
+      row.className='compactResetRow';
+      row.appendChild(resetBtn);
+      shell.appendChild(row);
+    }
+
+    const drawer=document.createElement('details');
+    drawer.className='settingsDrawer';
+    drawer.open=false;
+    const sum=document.createElement('summary');
+    sum.textContent='設定';
+    const body=document.createElement('div');
+    body.className='settingsDrawerBody';
+    drawer.appendChild(sum);
+    drawer.appendChild(body);
+
+    shell.appendChild(drawer);
+
+    // Move everything else into the settings drawer.
+    [...side.children].forEach(el=>{
+      if(el===shell) return;
+      body.appendChild(el);
+    });
+
+    // Also move any nested panels not already inside drawer, except score and reset.
+    [...shell.children].forEach(el=>{
+      if(el===drawer || el===scoreBlock || el.classList?.contains('compactResetRow')) return;
+    });
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',setupV132Sidebar,{once:true});
+  }else{
+    setupV132Sidebar();
+  }
+})();
+</script>
+
+
+
+
+
+
+
+<script>
+(function(){
+  function setupControllerSettingsV134(){
+    const modal=document.getElementById('controllerModal');
+    if(!modal || modal.dataset.v134==='1') return;
+    modal.dataset.v134='1';
+
+    // Move 3D collision settings into FPV controller settings modal.
+    const collision=[...document.querySelectorAll('.section')].find(el=>
+      (el.textContent||'').includes('3D 碰撞設定')
+    );
+    if(collision && !modal.contains(collision)){
+      const wrap=document.createElement('div');
+      wrap.className='controllerSubsection';
+      const h=document.createElement('h3');
+      h.textContent='3D 碰撞設定';
+      wrap.appendChild(h);
+      wrap.appendChild(collision);
+      modal.appendChild(wrap);
+    }
+
+    // Move control parameters into FPV controller settings modal.
+    const control=[...document.querySelectorAll('.section')].find(el=>
+      (el.textContent||'').includes('操控參數')
+    );
+    if(control && !modal.contains(control)){
+      const wrap=document.createElement('div');
+      wrap.className='controllerSubsection';
+      const h=document.createElement('h3');
+      h.textContent='操控參數';
+      wrap.appendChild(h);
+      wrap.appendChild(control);
+      modal.appendChild(wrap);
+    }
+
+    // Add reset button mapping inside FPV controller settings.
+    if(!document.getElementById('fpvResetButtonSelect')){
+      const wrap=document.createElement('div');
+      wrap.className='controllerSubsection';
+      const h=document.createElement('h3');
+      h.textContent='遙控器按鍵設定';
+      const row=document.createElement('div');
+      row.className='row';
+
+      const label=document.createElement('label');
+      label.textContent='重置無人機按鍵';
+
+      const select=document.createElement('select');
+      select.id='fpvResetButtonSelect';
+      select.style.cssText='width:145px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:6px;padding:5px';
+      select.innerHTML='<option value="-1">不設定</option>'+
+        Array.from({length:20},(_,i)=>`<option value="${i}">Button ${i}</option>`).join('');
+
+      row.appendChild(label);
+      row.appendChild(select);
+      wrap.appendChild(h);
+      wrap.appendChild(row);
+      modal.appendChild(wrap);
+
+      window.__fpvResetButtonIndex=-1;
+      select.addEventListener('change',()=>{
+        window.__fpvResetButtonIndex=parseInt(select.value,10);
+      });
+
+      let lastPressed=false;
+      function pollResetButton(){
+        const idx=window.__fpvResetButtonIndex;
+        let pressed=false;
+        if(idx>=0 && navigator.getGamepads){
+          const gp=[...navigator.getGamepads()].find(Boolean);
+          pressed=!!(gp && gp.buttons && gp.buttons[idx] && gp.buttons[idx].pressed);
+        }
+        if(pressed && !lastPressed){
+          const btn=document.getElementById('resetBtn');
+          if(btn) btn.click();
+        }
+        lastPressed=pressed;
+        requestAnimationFrame(pollResetButton);
+      }
+      requestAnimationFrame(pollResetButton);
+    }
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',setupControllerSettingsV134,{once:true});
+  }else{
+    setupControllerSettingsV134();
+  }
+})();
+</script>
+
+
+<script>
+(function(){
+  function setupResetV137(){
+    if(document.documentElement.dataset.resetV137==='1') return;
+    document.documentElement.dataset.resetV137='1';
+
+    const resetBtn=document.getElementById('resetBtn') ||
+      [...document.querySelectorAll('button')].find(b=>(b.textContent||'').includes('重置無人機'));
+
+    const flightSection=[...document.querySelectorAll('.section,details,.foldBody,div')].find(el=>{
+      const t=(el.textContent||'').replace(/\s+/g,' ');
+      return t.includes('飛行模式') && t.includes('LEVEL') && t.includes('ANGLE');
+    });
+
+    if(resetBtn && flightSection){
+      const row=document.createElement('div');
+      row.style.cssText='margin-top:8px';
+      resetBtn.parentNode?.removeChild(resetBtn);
+      row.appendChild(resetBtn);
+
+      const hint=document.createElement('div');
+      hint.className='resetShortcutHint';
+      hint.textContent='快捷鍵：Z';
+      row.appendChild(hint);
+
+      // Prefer placing inside the actual flight-mode section body.
+      const target = flightSection.querySelector('.foldBody') || flightSection;
+      target.appendChild(row);
+    }
+
+    window.addEventListener('keydown',(e)=>{
+      if(e.repeat) return;
+      const tag=(e.target?.tagName||'').toUpperCase();
+      if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||e.target?.isContentEditable) return;
+      if(e.key==='z'||e.key==='Z'){
+        const btn=document.getElementById('resetBtn') ||
+          [...document.querySelectorAll('button')].find(b=>(b.textContent||'').includes('重置無人機'));
+        if(btn){
+          e.preventDefault();
+          btn.click();
+        }
+      }
+    });
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',setupResetV137,{once:true});
+  }else{
+    setupResetV137();
+  }
+})();
+</script>
+
+</body>
+</html>
