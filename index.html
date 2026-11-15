@@ -255,13 +255,65 @@ body.training-mode #loadLevel{flex:0 0 auto}
   .layout>.side{order:0}
   #viewport,body.training-mode #viewport{height:clamp(300px,58vh,520px)}
 }
+/* Cockpit */
+:root{--hud-ink:#f4f8ff;--hud-muted:#a6bdcb;--hud-lime:#dcfc61}
+html,body{overflow:hidden;background:#080d14}
+#app{width:100%;max-width:none;height:100dvh;padding:0;overflow:hidden}
+.header{flex:0 0 auto;min-height:58px;margin:0;padding:8px clamp(10px,2vw,30px);border:0;border-radius:0;background:#0a111a;border-bottom:1px solid #263544}
+.brand h1{margin:0;color:var(--hud-ink);font-family:"Archivo Black",system-ui,sans-serif;font-style:italic;letter-spacing:-.02em;line-height:1.06}
+.brand h1 span{display:block;margin-top:3px;color:var(--hud-muted);font:700 9px/1.2 system-ui;letter-spacing:.18em}
+.tabs{gap:5px}.tabs button{background:transparent;border-color:transparent;border-radius:3px;font-weight:700}
+.tabs button.active{background:var(--hud-lime);border-color:var(--hud-lime)}
+#settingsToggle{border-color:#435464}
+.layout,body.training-mode .layout{position:relative;display:block;flex:1 1 auto;min-height:0;overflow:hidden}
+.layout>.arena-shell{position:absolute;inset:0;display:flex;flex-direction:column;border:0;border-radius:0;background:#0a111a}
+#viewport,body.training-mode #viewport{height:auto;max-height:none;min-height:0;flex:1 1 0}
+#viewport:focus{outline:none}
+.stagebar{order:2;flex:0 0 auto;border:0;border-top:1px solid #253646;padding:7px clamp(10px,2vw,24px);background:#0a111a;gap:8px}
+.stagebar .camera-controls{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.stagebar .btn,.stagebar .controllerBtn{padding:5px 9px;border-radius:4px;background:#172532}
+.stagebar .btn.primary{color:#0d1820;background:#dceaf1}
+#modeDesc,.view-tip{display:none}
+.layout>.card.side,body.training-mode .layout>.card.side{position:absolute;z-index:12;top:12px;right:12px;bottom:58px;display:flex;flex-direction:column;width:min(338px,calc(100% - 24px));height:auto;max-height:none;overflow:auto;overscroll-behavior:contain;background:#0b141ef5;border-color:#405568;box-shadow:0 12px 32px #0009}
+.layout>.side[hidden],body.training-mode .layout>.side[hidden]{display:none}
+.side .section{background:#16232f;border-color:#2b4051}
+#matchPanel,#academyPanel{order:-2}
+#refPanel{order:-1}
+#hud{inset:auto auto 20px clamp(12px,3vw,44px);width:auto;min-width:0;padding:0;border:0;background:none;color:var(--hud-ink);text-shadow:0 2px 6px #000}
+#hud .telemetry-main{display:flex;gap:6px}
+#hud .telemetry-main div{background:#0a131fdf;border-top:2px solid var(--hud-lime);padding:7px 12px;min-width:96px}
+#hud .telemetry-main span{display:block;color:var(--hud-muted);font-size:10px;letter-spacing:.1em}
+#hud .telemetry-main b{display:block;float:none;margin:0;color:#f3f8ff;font:800 clamp(16px,2.2vw,30px)/1.15 system-ui;font-variant-numeric:tabular-nums}
+#hud .telemetry-strip{display:flex;gap:10px;padding:5px 7px;margin-top:4px;background:#0a131fc9;color:var(--hud-muted);width:max-content;max-width:100%;flex-wrap:wrap}
+#hud .telemetry-strip b{float:none;margin:0 2px;color:var(--hud-ink)}
+#status{color:#e4eff8;border:1px solid #6681997a;background:#09121adf;bottom:22px;font-weight:650;max-width:min(48%,420px)}
+#arenaScore{position:absolute;z-index:2;top:18px;left:50%;transform:translateX(-50%);display:flex;align-items:stretch;pointer-events:none;box-shadow:0 4px 16px #0008;color:#fff;font-variant-numeric:tabular-nums}
+#arenaScore[hidden]{display:none}
+.score-team,.score-time{display:flex;align-items:center;gap:14px;background:#101c28f0;padding:7px 16px;font-size:11px;font-weight:800;white-space:nowrap}
+.score-team b,.score-time b{font-size:clamp(17px,2vw,26px);line-height:1.2}
+.score-team.red{border-left:4px solid #ff4a68;background:#412031f5}
+.score-team.blue{border-right:4px solid #55c7ff;background:#12354af5}
+.score-time{justify-content:center;min-width:92px}
+#crosshair{width:28px;height:28px;border:1px solid #e2f1faab;border-radius:50%;filter:drop-shadow(0 1px 1px #000)}
+#crosshair::before{width:12px;left:7px;top:12px;height:1px}
+#crosshair::after{height:12px;left:12px;top:7px;width:1px}
+.stage-credit{color:#a6bdcb;white-space:nowrap;font-size:10px}
+body.training-mode .layout>.card.side{overflow:auto!important}
+@media(max-width:720px){
+ .header{padding:6px 8px;gap:6px}.tabs button{font-size:11px;padding:5px 6px}
+ .stagebar{padding:4px 8px;font-size:11px}.stagebar .btn,.stagebar .controllerBtn{font-size:11px;padding:4px 5px}
+ #hud{bottom:39px}#hud .telemetry-main div{padding:4px 7px;min-width:64px}
+ #hud .telemetry-strip{gap:5px}#status{bottom:8px;max-width:88%;font-size:10px}
+ .score-team,.score-time{padding:5px 10px;gap:8px}
+ .layout>.card.side,body.training-mode .layout>.card.side{bottom:68px}
+}
 </style>
 </head>
 <body>
 <div id="app">
   <div class="header">
     <div class="brand">
-      <h1>DRONE SOCCER TRAINER <span style="font-size:11px;color:#9db0c3">V14.2 PRO</span></h1>
+      <h1>DRONE SOCCER <span>TRAINER · V14.2</span></h1>
       
     </div>
     <div class="tabs">
@@ -269,14 +321,15 @@ body.training-mode #loadLevel{flex:0 0 auto}
       <button id="tabMatch">3v3 比賽</button>
       <button id="tabAcademy">飛行學院</button>
       <button id="proBtn" type="button">Pro 購買預覽</button>
+      <button id="settingsToggle" type="button" aria-controls="settingsPanel" aria-expanded="false">飛行設定</button>
     </div>
   </div>
 
   <div class="layout">
-    <div class="card">
+    <div class="card arena-shell">
       <div class="stagebar">
-        <div><b id="modeName">自由模式</b> <span id="modeDesc" class="small">3D 自由飛行與碰撞練習</span></div><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span id="inputBadge" class="inputBadge"><i></i><span id="inputLabel">鍵盤控制</span></span><button id="controllerBtn" class="controllerBtn" type="button">FPV 遙控器設定</button><span class="small">C 鍵輪切視角</span></div>
-        <div>
+        <div><b id="modeName">自由模式</b> <span id="modeDesc" class="small">3D 自由飛行與碰撞練習</span></div><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span id="inputBadge" class="inputBadge"><i></i><span id="inputLabel">鍵盤控制</span></span><button id="controllerBtn" class="controllerBtn" type="button">FPV 遙控器設定</button><span class="small view-tip">C 鍵輪切視角</span></div>
+        <div class="camera-controls">
           <button id="thirdBtn" class="btn primary">第三人稱</button>
           <button id="fpvBtn" class="btn">FPV 第一人稱</button>
           <button id="pilotBtn" class="btn">場外飛手</button>
@@ -288,6 +341,7 @@ body.training-mode #loadLevel{flex:0 0 auto}
             </select>
           </label>
         </div>
+        <small class="stage-credit">製作人 李宇軒 / Xuan</small>
       </div>
       <div id="viewport" tabindex="0">
         <div id="loading" style="padding:20px;color:#c9d7e4">正在載入 WebGL 3D 引擎…</div>
@@ -310,22 +364,24 @@ body.training-mode #loadLevel{flex:0 0 auto}
   <div id="calInfo" class="small" style="margin-top:6px">中心校正會記錄目前四軸中心值；Throttle 若使用無彈簧油門，可保留預設中心 0。</div>
 </div>
 <div class="hud" id="hud" style="display:none">
-          <div>高度 <b id="hudAlt">1.50 m</b></div>
-          <div>速度 <b id="hudSpeed">0.00 m/s</b></div>
-          <div>Yaw <b id="hudYaw">0°</b></div>
-          <div>模式 <b id="hudMode">LEVEL</b></div>
-          <div>耐久 <b id="hudHealth">100%</b></div>
-          <div>角色 <b id="hudRole">ATTACKER</b></div>
-          <div>場地 <b>6×3×3 m (FAI)</b></div>
-          <div>機體 <b>Ø 0.20 m</b></div>
-          <div>視角 <b id="hudCamera">THIRD</b></div>
+          <div class="telemetry-main">
+            <div><span>高度</span><b id="hudAlt">1.50 m</b></div>
+            <div><span>速度</span><b id="hudSpeed">0.00 m/s</b></div>
+            <div><span>航向</span><b id="hudYaw">0°</b></div>
+          </div>
+          <div class="telemetry-strip"><b id="hudMode">LEVEL</b><b id="hudCamera">THIRD</b><b id="hudRole">ATTACKER</b><span>耐久 <b id="hudHealth">100%</b></span></div>
+        </div>
+        <div id="arenaScore" aria-label="比賽比分" hidden>
+          <div class="score-team red">紅隊 <b id="redScore">0</b></div>
+          <div class="score-time"><b id="clock">03:00</b></div>
+          <div class="score-team blue"><b id="blueScore">0</b> 藍隊</div>
         </div>
         <div class="crosshair" id="crosshair"></div>
         <div class="centermsg" id="status">載入中…</div>
       </div>
     </div>
 
-    <aside class="card side compact-scroll">
+    <aside class="card side compact-scroll" id="settingsPanel" aria-label="飛行設定" hidden>
       <div class="section training-hide">
         <h3>飛行模式</h3>
         <div class="switch">
@@ -355,11 +411,6 @@ body.training-mode #loadLevel{flex:0 0 auto}
 
       <div class="section" id="matchPanel" style="display:none">
         <h3>3v3 比賽</h3>
-        <div class="grid3">
-          <div class="metric"><span>RED</span><b id="redScore">0</b></div>
-          <div class="metric"><span>時間</span><b id="clock">03:00</b></div>
-          <div class="metric"><span>BLUE</span><b id="blueScore">0</b></div>
-        </div>
         <div class="small" style="margin-top:6px">每隊 1 名進攻手＋ 2 名防守手，僅進攻手可得分。進球後必須自行飛回己方半場，完成回場後才能再次得分。</div>
         <div class="row" style="margin-top:7px"><label>玩家角色</label><select id="roleSelect" style="width:165px;padding:7px;background:#101e2b;color:#fff;border:1px solid #35506a;border-radius:7px"><option value="attacker">進攻手 Attacker</option><option value="defender">防守手 Defender</option></select></div>
         <div class="row" style="margin-top:7px">
@@ -534,7 +585,8 @@ const teamLights={
   red:new THREE.MeshBasicMaterial({color:0xff465d}),
   blue:new THREE.MeshBasicMaterial({color:0x37bdff})
 };
-const steel=new THREE.MeshStandardMaterial({color:0x263746,roughness:.75});
+const steel=new THREE.MeshStandardMaterial({color:0x506071,roughness:.75});
+const floodlights=new THREE.MeshBasicMaterial({color:0xc6e7ff});
 const wall=new THREE.MeshStandardMaterial({color:0x131d28,roughness:.92});
 const arenaBoxBatches=new Map();
 function arenaBox(size,position,material){
@@ -542,6 +594,17 @@ function arenaBox(size,position,material){
   arenaBoxBatches.get(material).push({size,position});
 }
 arenaBox([13,.06,10],[0,-.05,0],wall);
+arenaBox([12,.14,7.5],[0,3.72,0],wall);
+for(const x of [-5,-3.3,-1.65,0,1.65,3.3,5]){
+  arenaBox([.1,.18,7.4],[x,3.58,0],steel);
+  for(const z of [-1.85,1.85])arenaBox([.045,.027,1.38],[x,3.475,z],floodlights);
+}
+for(const sign of [-1,1]){
+  arenaBox([.12,3.65,7.4],[sign*5.9,1.8,0],wall);
+  arenaBox([.15,.08,7.3],[sign*5.82,.27,0],steel);
+  arenaBox([.14,.04,6.6],[sign*5.8,.6,0],sign<0?teamLights.red:teamLights.blue);
+  for(const z of [-3,-1.5,0,1.5,3])arenaBox([.16,3.55,.13],[sign*5.8,1.8,z],steel);
+}
 for(const z of [-3.7,3.7]){
   arenaBox([12,3.4,.1],[0,1.7,z],wall);
   arenaBox([12,.08,.14],[0,2.75,z],steel);
@@ -573,6 +636,36 @@ for(const [material,boxes] of arenaBoxBatches){
   batch.instanceMatrix.needsUpdate=true;
   arenaDecor.add(batch);
 }
+function makeArenaBanner(){
+  const canvas=document.createElement('canvas');
+  canvas.width=1024;
+  canvas.height=208;
+  const paint=canvas.getContext('2d');
+  paint.fillStyle='#131e2c';
+  paint.fillRect(0,0,1024,208);
+  paint.fillStyle='#ff4765';
+  paint.fillRect(0,0,12,208);
+  paint.fillStyle='#46bfff';
+  paint.fillRect(1012,0,12,208);
+  paint.textAlign='center';
+  paint.fillStyle='#eaf6ff';
+  paint.font='italic 900 94px system-ui';
+  paint.fillText('DRONE SOCCER',512,124);
+  paint.fillStyle='#b7ccdc';
+  paint.font='700 29px system-ui';
+  paint.fillText('INDOOR FLIGHT ARENA',512,174);
+  const texture=new THREE.CanvasTexture(canvas);
+  texture.colorSpace=THREE.SRGBColorSpace;
+  const geometry=new THREE.PlaneGeometry(4.7,.95);
+  const material=new THREE.MeshBasicMaterial({map:texture});
+  for(const sign of [-1,1]){
+    const banner=new THREE.Mesh(geometry,material);
+    banner.position.set(sign*5.69,2.52,0);
+    banner.rotation.y=-sign*Math.PI/2;
+    arenaDecor.add(banner);
+  }
+}
+makeArenaBanner();
 const midfieldCircle=new THREE.Mesh(
   new THREE.RingGeometry(.5,.512,48),
   new THREE.MeshBasicMaterial({color:0x88a9bd})
@@ -802,7 +895,7 @@ function pollControllerArm(){
  const bi=+armButton.value;if(bi>=0&&gp.buttons[bi]){const pressed=gp.buttons[bi].pressed;if(pressed&&!radio.lastArm){player.armed=!player.armed;status.textContent=player.armed?'ARMED｜FPV 遙控器':'DISARMED｜FPV 遙控器'}radio.lastArm=pressed}else radio.lastArm=false;
 }
 window.addEventListener('gamepadconnected',e=>{radio.index=e.gamepad.index;updateControllerUI();});window.addEventListener('gamepaddisconnected',e=>{if(radio.index===e.gamepad.index)radio.index=null;updateControllerUI();});
-controllerBtn.addEventListener('click',()=>{controllerModal.classList.add('open');viewport.focus()});controllerClose.addEventListener('click',()=>controllerModal.classList.remove('open'));
+controllerBtn.addEventListener('click',()=>{setSettingsOpen(false);controllerModal.classList.add('open');viewport.focus({preventScroll:true})});controllerClose.addEventListener('click',()=>controllerModal.classList.remove('open'));
 radioDeadzone.addEventListener('input',()=>deadzoneTxt.textContent=(+radioDeadzone.value).toFixed(2));
 mode2Btn.addEventListener('click',()=>{mapRoll.value=0;mapPitch.value=1;mapYaw.value=2;mapThrottle.value=3;revRoll.checked=false;revPitch.checked=true;revYaw.checked=true;revThrottle.checked=true;calInfo.textContent='已套用 Mode 2 預設。若方向不正確，勾選/取消 REV 即可。'});
 centerCalBtn.addEventListener('click',()=>{const gp=getPad();if(!gp){calInfo.textContent='尚未偵測到遙控器。';return}gp.axes.forEach((v,i)=>radio.centers[i]=v);radio.centers[+mapThrottle.value]=0;calInfo.textContent='中心校正完成。Throttle 維持 0 基準；其他軸已記錄目前中心。'});
@@ -1007,7 +1100,22 @@ function academyCheck(){
 function pass(){status.textContent=`LEVEL ${activeLevel[0]} PASS｜${activeLevel[1]}`;taskProgress.textContent='✅ 已達成目前自動判定條件';player.armed=false;}
 function renderLevels(){ const range=tier.value==='bird'?[1,10]:tier.value==='sparrow'?[11,20]:[21,30]; levels.innerHTML=''; LEVELS.filter(l=>l[0]>=range[0]&&l[0]<=range[1]).forEach(l=>{ const b=document.createElement('button'); b.type='button'; b.className='level'+(l[0]===selectedLevel?' sel':''); b.textContent=`Level ${l[0]}｜${l[1]}`; b.addEventListener('click',()=>{selectedLevel=l[0];renderLevels()}); levels.appendChild(b); }); }
 function setView(v){viewMode=v;thirdBtn.classList.toggle('primary',v==='third');fpvBtn.classList.toggle('primary',v==='fpv');pilotBtn.classList.toggle('primary',v==='pilot');crosshair.style.display=v==='fpv'?'block':'none';status.textContent=v==='pilot'?'場外飛手視角：我方球門後方':v==='fpv'?'FPV 第一人稱視角':'第三人稱追蹤視角';}
+const settingsToggle=document.getElementById('settingsToggle');
+const settingsPanel=document.getElementById('settingsPanel');
+const arenaScore=document.getElementById('arenaScore');
+function setSettingsOpen(open){
+  settingsPanel.hidden=!open;
+  settingsToggle.setAttribute('aria-expanded',String(open));
+  settingsToggle.textContent=open?'收起面板':'飛行設定';
+  if(open)settingsPanel.scrollTop=0;
+}
+settingsToggle.addEventListener('click',()=>{
+  controllerModal.classList.remove('open');
+  setSettingsOpen(settingsPanel.hidden);
+});
 function setMode(m){ document.body.classList.toggle('training-mode',m==='academy');
+ setSettingsOpen(m!=='free');
+ arenaScore.hidden=m!=='match';
  try{
    // Stop current activity first
    matchRunning=false;
@@ -1112,7 +1220,7 @@ document.getElementById('proSimulate').addEventListener('click',()=>{
 let resizeRAF=0;const ro=new ResizeObserver(()=>{cancelAnimationFrame(resizeRAF);resizeRAF=requestAnimationFrame(resize);});ro.observe(viewport); resize();
 viewport.addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.code==='Space'){e.preventDefault();player.armed=!player.armed;status.textContent=player.armed?'ARMED｜可以起飛':'DISARMED';} if(e.key.toLowerCase()==='r')resetPlayer(); if(e.key.toLowerCase()==='c'){const seq=['third','fpv','pilot'];setView(seq[(seq.indexOf(viewMode)+1)%3]);} });
 viewport.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; }); viewport.addEventListener('pointerdown',()=>viewport.focus());
-thirdBtn.addEventListener('click',()=>setView('third')); fpvBtn.addEventListener('click',()=>setView('fpv')); pilotBtn.addEventListener('click',()=>setView('pilot')); tabFree.addEventListener('click',()=>setMode('free')); tabMatch.addEventListener('click',()=>setMode('match')); tabAcademy.addEventListener('click',()=>setMode('academy')); document.querySelectorAll('[data-fmode]').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('[data-fmode]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); flightMode=b.dataset.fmode; status.textContent='Flight Mode：'+flightMode.toUpperCase(); })); resetBtn.addEventListener('click',resetPlayer); roleSelect.addEventListener('change',()=>{ player.role=roleSelect.value; setupAI(); status.textContent=player.role==='attacker'?'角色：進攻手｜得分後需自行回場':'角色：防守手｜AI 負責己方進攻'; }); startMatch.addEventListener('click',()=>{ player.role=roleSelect.value; player.retreatRequired=false; score={red:0,blue:0}; matchTime=180; matchRunning=true; player.armed=true; setupAI(); resetGoalPlaneTracking(); status.textContent=player.role==='attacker'?'MATCH START｜你是進攻手':'MATCH START｜你是防守手'; }); tier.addEventListener('change',()=>{ selectedLevel=tier.value==='bird'?1:tier.value==='sparrow'?11:21; renderLevels(); }); loadLevel.addEventListener('click',()=>{ activeLevel=LEVELS.find(l=>l[0]===selectedLevel); levelStart=performance.now(); lastAcademyTick=levelStart; resetLevel1State(); resetCourseState(); resetPlayer(); if(selectedLevel===1)player.group.position.set(0,.12,0); if(selectedLevel===2)player.group.position.set(-1.4,1.2,0); if(selectedLevel===3)player.group.position.set(0,1.2,0); if(selectedLevel===4)player.group.position.set(0,.12,0); if(selectedLevel===6)player.group.position.set(0,1.5,0); if(selectedLevel===7)player.group.position.set(0,1.2,0); if(selectedLevel===8)player.group.position.set(-1,1.2,0); if(selectedLevel===10)player.group.position.set(-1.4,1.2,0); if(selectedLevel===11||selectedLevel===12)player.group.position.set(.9,1.2,0); if(selectedLevel===17)player.group.position.set(-1.4,1.2,0); buildTrainingField(selectedLevel); taskBox.style.display='block'; taskTitle.textContent=`Level ${activeLevel[0]}｜${activeLevel[1]}`; taskText.textContent=activeLevel[2]; taskProgress.textContent=selectedLevel===1?'四個方向各需連續穩定 10 秒':selectedLevel===4?'依序進入高度提示區，每層穩定 5 秒':selectedLevel===6?'保持在黃色判定球內，先順時針再逆時針各 360°':selectedLevel===7?'依序通過 5 個提示節點：起點→右前→原點→左前→原點':selectedLevel===10?'穿門後必須碰觸黃色提示點，再 180° 轉向、返回、降落':(selectedLevel===11||selectedLevel===12)?'灰色＝未通過；綠色＝已通過，完成至少 92% 圓形航線':'提示點為大型半透明 3D 高度球；灰色虛線＝未通過、綠色＝已通過，20 cm 球形護框碰到線段即完成該段；航線型關卡需完成約 92%'; status.textContent=`LEVEL ${activeLevel[0]}｜${activeLevel[1]}`; }); bounce.addEventListener('input',()=>bounceTxt.textContent=(+bounce.value).toFixed(2)); damage.addEventListener('input',()=>damageTxt.textContent=(+damage.value).toFixed(1)); accel.addEventListener('input',()=>accelTxt.textContent=(+accel.value).toFixed(1)); vertical.addEventListener('input',()=>verticalTxt.textContent=(+vertical.value).toFixed(1)); yawRate.addEventListener('input',()=>yawRateTxt.textContent=yawRate.value);
+thirdBtn.addEventListener('click',()=>setView('third')); fpvBtn.addEventListener('click',()=>setView('fpv')); pilotBtn.addEventListener('click',()=>setView('pilot')); tabFree.addEventListener('click',()=>setMode('free')); tabMatch.addEventListener('click',()=>setMode('match')); tabAcademy.addEventListener('click',()=>setMode('academy')); document.querySelectorAll('[data-fmode]').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('[data-fmode]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); flightMode=b.dataset.fmode; status.textContent='Flight Mode：'+flightMode.toUpperCase(); })); resetBtn.addEventListener('click',resetPlayer); roleSelect.addEventListener('change',()=>{ player.role=roleSelect.value; setupAI(); status.textContent=player.role==='attacker'?'角色：進攻手｜得分後需自行回場':'角色：防守手｜AI 負責己方進攻'; }); startMatch.addEventListener('click',()=>{ player.role=roleSelect.value; player.retreatRequired=false; score={red:0,blue:0}; matchTime=180; matchRunning=true; player.armed=true; setupAI(); resetGoalPlaneTracking(); status.textContent=player.role==='attacker'?'MATCH START｜你是進攻手':'MATCH START｜你是防守手';setSettingsOpen(false);viewport.focus({preventScroll:true}); }); tier.addEventListener('change',()=>{ selectedLevel=tier.value==='bird'?1:tier.value==='sparrow'?11:21; renderLevels(); }); loadLevel.addEventListener('click',()=>{ activeLevel=LEVELS.find(l=>l[0]===selectedLevel); levelStart=performance.now(); lastAcademyTick=levelStart; resetLevel1State(); resetCourseState(); resetPlayer(); if(selectedLevel===1)player.group.position.set(0,.12,0); if(selectedLevel===2)player.group.position.set(-1.4,1.2,0); if(selectedLevel===3)player.group.position.set(0,1.2,0); if(selectedLevel===4)player.group.position.set(0,.12,0); if(selectedLevel===6)player.group.position.set(0,1.5,0); if(selectedLevel===7)player.group.position.set(0,1.2,0); if(selectedLevel===8)player.group.position.set(-1,1.2,0); if(selectedLevel===10)player.group.position.set(-1.4,1.2,0); if(selectedLevel===11||selectedLevel===12)player.group.position.set(.9,1.2,0); if(selectedLevel===17)player.group.position.set(-1.4,1.2,0); buildTrainingField(selectedLevel); taskBox.style.display='block'; taskTitle.textContent=`Level ${activeLevel[0]}｜${activeLevel[1]}`; taskText.textContent=activeLevel[2]; taskProgress.textContent=selectedLevel===1?'四個方向各需連續穩定 10 秒':selectedLevel===4?'依序進入高度提示區，每層穩定 5 秒':selectedLevel===6?'保持在黃色判定球內，先順時針再逆時針各 360°':selectedLevel===7?'依序通過 5 個提示節點：起點→右前→原點→左前→原點':selectedLevel===10?'穿門後必須碰觸黃色提示點，再 180° 轉向、返回、降落':(selectedLevel===11||selectedLevel===12)?'灰色＝未通過；綠色＝已通過，完成至少 92% 圓形航線':'提示點為大型半透明 3D 高度球；灰色虛線＝未通過、綠色＝已通過，20 cm 球形護框碰到線段即完成該段；航線型關卡需完成約 92%'; status.textContent=`LEVEL ${activeLevel[0]}｜${activeLevel[1]}`;setSettingsOpen(false);viewport.focus({preventScroll:true}); }); bounce.addEventListener('input',()=>bounceTxt.textContent=(+bounce.value).toFixed(2)); damage.addEventListener('input',()=>damageTxt.textContent=(+damage.value).toFixed(1)); accel.addEventListener('input',()=>accelTxt.textContent=(+accel.value).toFixed(1)); vertical.addEventListener('input',()=>verticalTxt.textContent=(+vertical.value).toFixed(1)); yawRate.addEventListener('input',()=>yawRateTxt.textContent=yawRate.value);
  const aiDifficulty=document.getElementById('aiDifficulty');
  const aiDifficultyTxt=document.getElementById('aiDifficultyTxt');
  const aiDifficultyDesc=document.getElementById('aiDifficultyDesc');
@@ -1505,7 +1613,7 @@ function handleNetMessage(msg,from){
  if(msg.type==='profileRejected'){netStatus.textContent='⛔ '+(msg.reason||'角色席位已被選走');if(msg.profile){netTeam.value=msg.profile.team;netRole.value=msg.profile.role;lastValidTeam=msg.profile.team;lastValidRole=msg.profile.role;}if(msg.roster){netPlayers.clear();for(const p of msg.roster){if(p.id!==netPeer?.id)netPlayers.set(p.id,p);} }localReady=false;readyBtn.textContent='我已準備';renderPlayerList();}
  if(msg.type==='state'){syncRemoteState(msg.id,msg.state);if(isHost)broadcast(msg,from);}
  if(msg.type==='seriesConfig'){Object.assign(series,msg.series);series.needed=Math.floor(series.bestOf/2)+1;updateSeriesUI();}
- if(msg.type==='seriesStart'){Object.assign(series,msg.series);hideRestOverlay();setMode('match');applyMultiplayerLineup(series.lineup||[]);updateTeamAppearance(player);updateRoleAppearance(player);resetRoundDroneStats();score={red:0,blue:0};resetGoalPlaneTracking();matchTime=series.roundMinutes*60;matchRunning=true;player.armed=true;multiModal.style.display='none';status.textContent=`多人系列賽 第 ${series.round} 局開始`;updateSeriesUI();updateHUD();}
+ if(msg.type==='seriesStart'){Object.assign(series,msg.series);hideRestOverlay();setMode('match');applyMultiplayerLineup(series.lineup||[]);updateTeamAppearance(player);updateRoleAppearance(player);resetRoundDroneStats();score={red:0,blue:0};resetGoalPlaneTracking();matchTime=series.roundMinutes*60;matchRunning=true;player.armed=true;multiModal.style.display='none';setSettingsOpen(false);viewport.focus({preventScroll:true});status.textContent=`多人系列賽 第 ${series.round} 局開始`;updateSeriesUI();updateHUD();}
  if(msg.type==='score'&&series.phase==='play'&&msg.round===series.round){
     matchTime=msg.matchTime;
     score=msg.score;
@@ -1594,7 +1702,7 @@ function updateProfileNet(){
  if(!netPeer){renderPlayerList();return;}const msg={type:'profile',profile:myNetProfile()};sendHost(msg);renderPlayerList();}
 function seriesConfigFromUI(){series.bestOf=+seriesBestOf.value;series.roundMinutes=+roundMinutes.value;series.restMinutes=+restMinutes.value;series.needed=Math.floor(series.bestOf/2)+1;series.wins={red:0,blue:0};series.round=0;series.history=[];series.phase='lobby';}
 function updateSeriesUI(){seriesState.textContent=`${series.phase.toUpperCase()}｜局 ${series.round}｜紅 ${series.wins.red} : ${series.wins.blue} 藍`;}
-function startSeriesHost(){if(!isHost)return;hideRestOverlay();seriesConfigFromUI();series.round=1;series.phase='play';series.lineup=buildMatchLineup();setMode('match');applyMultiplayerLineup(series.lineup);updateTeamAppearance(player);updateRoleAppearance(player);resetRoundDroneStats();score={red:0,blue:0};resetGoalPlaneTracking();matchTime=series.roundMinutes*60;matchRunning=true;player.armed=true;multiModal.style.display='none';const msg={type:'seriesStart',series:{...series,wins:{...series.wins},history:[...series.history],lineup:series.lineup.map(x=>({...x}))}};broadcast(msg);updateSeriesUI();updateHUD();status.textContent='多人系列賽開始';}
+function startSeriesHost(){if(!isHost)return;hideRestOverlay();seriesConfigFromUI();series.round=1;series.phase='play';series.lineup=buildMatchLineup();setMode('match');applyMultiplayerLineup(series.lineup);updateTeamAppearance(player);updateRoleAppearance(player);resetRoundDroneStats();score={red:0,blue:0};resetGoalPlaneTracking();matchTime=series.roundMinutes*60;matchRunning=true;player.armed=true;multiModal.style.display='none';setSettingsOpen(false);viewport.focus({preventScroll:true});const msg={type:'seriesStart',series:{...series,wins:{...series.wins},history:[...series.history],lineup:series.lineup.map(x=>({...x}))}};broadcast(msg);updateSeriesUI();updateHUD();status.textContent='多人系列賽開始';}
 function finishRoundHost(){
  if(!isHost||series.phase!=='play')return;
  const winner=score.red===score.blue?'draw':score.red>score.blue?'red':'blue';
@@ -1603,7 +1711,7 @@ function finishRoundHost(){
  if(series.wins.red>=series.needed||series.wins.blue>=series.needed){series.phase='finished';broadcast({type:'seriesEnd',series:{...series,wins:{...series.wins},history:[...series.history]}});showSeriesResult();return;}
  series.phase='rest';series.restLeft=series.restMinutes*60;matchRunning=false;player.armed=false;broadcast({type:'roundEnd',series:{...series,wins:{...series.wins},history:[...series.history]}});updateSeriesUI();showRestOverlay();status.textContent=`中場休息 ${Math.ceil(series.restLeft)} 秒`;
 }
-function startNextRoundHost(){hideRestOverlay();series.round++;series.phase='play';setMode('match');applyMultiplayerLineup(series.lineup||[]);updateTeamAppearance(player);updateRoleAppearance(player);resetRoundDroneStats();score={red:0,blue:0};resetGoalPlaneTracking();matchTime=series.roundMinutes*60;matchRunning=true;player.armed=true;multiModal.style.display='none';broadcast({type:'seriesStart',series:{...series,wins:{...series.wins},history:[...series.history],lineup:(series.lineup||[]).map(x=>({...x}))}});updateSeriesUI();updateHUD();status.textContent=`第 ${series.round} 局開始`; }
+function startNextRoundHost(){hideRestOverlay();series.round++;series.phase='play';setMode('match');applyMultiplayerLineup(series.lineup||[]);updateTeamAppearance(player);updateRoleAppearance(player);resetRoundDroneStats();score={red:0,blue:0};resetGoalPlaneTracking();matchTime=series.roundMinutes*60;matchRunning=true;player.armed=true;multiModal.style.display='none';setSettingsOpen(false);viewport.focus({preventScroll:true});broadcast({type:'seriesStart',series:{...series,wins:{...series.wins},history:[...series.history],lineup:(series.lineup||[]).map(x=>({...x}))}});updateSeriesUI();updateHUD();status.textContent=`第 ${series.round} 局開始`; }
 function showSeriesResult(){
  matchRunning=false;
  player.armed=false;
@@ -1778,22 +1886,6 @@ animate();
 
 </script>
 
-<div id="creatorCredit"style="
-  position:fixed;
-  right:10px;
-  bottom:8px;
-  z-index:9999;
-  font-size:12px;
-  font-weight:700;
-  letter-spacing:.3px;
-  color:rgba(255,255,255,.72);
-  background:rgba(5,12,20,.48);
-  border:1px solid rgba(255,255,255,.10);
-  border-radius:8px;
-  padding:5px 8px;
-  pointer-events:none;
-  backdrop-filter:blur(4px);
-  -webkit-backdrop-filter:blur(4px);
-">製作人：李宇軒 / Xuan</div>
+
 </body>
 </html>
