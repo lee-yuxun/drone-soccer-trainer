@@ -513,12 +513,17 @@ const ARENA={L:6,W:3,H:3}, GOAL_R=.20, GOAL_TUBE=.025, GOAL_Y=2.0, DR=.10;
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(ARENA.L,ARENA.W), new THREE.MeshStandardMaterial({color:0x16384a,roughness:.88,metalness:.04}));
 floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
 const centerLine=new THREE.Mesh(new THREE.BoxGeometry(.02,.01,ARENA.W), new THREE.MeshBasicMaterial({color:0x9cb4c7,transparent:true,opacity:.55})); centerLine.position.y=.006; scene.add(centerLine);
-const cageMat=new THREE.LineBasicMaterial({color:0xb7cad8,transparent:true,opacity:.35});const cageObjects=[];
-function edge(a,b){ const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]); const l=new THREE.Line(g,cageMat);scene.add(l);cageObjects.push(l);}
-function setArenaVisible(v){floor.visible=v;centerLine.visible=v;arenaDecor.visible=v;cageObjects.forEach(o=>o.visible=v)}
+const cageMat=new THREE.LineBasicMaterial({color:0xb7cad8,transparent:true,opacity:.35});
+const cageEdges=[];
+function edge(a,b){cageEdges.push(...a,...b);}
+function setArenaVisible(v){floor.visible=v;centerLine.visible=v;arenaDecor.visible=v;cage.visible=v}
 const X=ARENA.L/2,Z=ARENA.W/2,Y=ARENA.H;
 [[[-X,0,-Z],[X,0,-Z]],[[-X,0,Z],[X,0,Z]],[[-X,Y,-Z],[X,Y,-Z]],[[-X,Y,Z],[X,Y,Z]],[[-X,0,-Z],[-X,0,Z]],[[X,0,-Z],[X,0,Z]],[[-X,Y,-Z],[-X,Y,Z]],[[X,Y,-Z],[X,Y,Z]],[[-X,0,-Z],[-X,Y,-Z]],[[X,0,-Z],[X,Y,-Z]],[[-X,0,Z],[-X,Y,Z]],[[X,0,Z],[X,Y,Z]]].forEach(e=>edge(e[0],e[1]));
 for(let ix=-3;ix<=3;ix+=.3){edge([ix,0,-1.5],[ix,4,-1.5]);edge([ix,0,1.5],[ix,4,1.5])}
+const cageGeometry=new THREE.BufferGeometry();
+cageGeometry.setAttribute('position',new THREE.Float32BufferAttribute(cageEdges,3));
+const cage=new THREE.LineSegments(cageGeometry,cageMat);
+scene.add(cage);
 function makeGoal(side){ const group=new THREE.Group(); const tor=new THREE.Mesh(new THREE.TorusGeometry(GOAL_R,GOAL_TUBE,12,64), new THREE.MeshStandardMaterial({color:0xffd166,emissive:0x5b3b00,roughness:.45})); tor.rotation.y=Math.PI/2; tor.castShadow=true; group.add(tor); const gx=side==='red'?-2:2; group.position.set(gx,GOAL_Y,0); scene.add(group); return {group,center:new THREE.Vector3(gx,GOAL_Y,0),side}; }
 const goals=[makeGoal('red'),makeGoal('blue')];
 
@@ -531,10 +536,10 @@ const teamLights={
 };
 const steel=new THREE.MeshStandardMaterial({color:0x263746,roughness:.75});
 const wall=new THREE.MeshStandardMaterial({color:0x131d28,roughness:.92});
+const arenaBoxBatches=new Map();
 function arenaBox(size,position,material){
-  const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),material);
-  mesh.position.set(...position);
-  arenaDecor.add(mesh);
+  if(!arenaBoxBatches.has(material))arenaBoxBatches.set(material,[]);
+  arenaBoxBatches.get(material).push({size,position});
 }
 arenaBox([13,.06,10],[0,-.05,0],wall);
 for(const z of [-3.7,3.7]){
@@ -554,6 +559,19 @@ for(const [team,sign] of [['red',-1],['blue',1]]){
   const ring=goals[team==='red'?0:1].group.children[0];
   ring.material.color.copy(teamLights[team].color);
   ring.material.emissive.copy(teamLights[team].color).multiplyScalar(.4);
+}
+const unitBox=new THREE.BoxGeometry(1,1,1);
+const boxTransform=new THREE.Object3D();
+for(const [material,boxes] of arenaBoxBatches){
+  const batch=new THREE.InstancedMesh(unitBox,material,boxes.length);
+  boxes.forEach(({size,position},index)=>{
+    boxTransform.position.set(...position);
+    boxTransform.scale.set(...size);
+    boxTransform.updateMatrix();
+    batch.setMatrixAt(index,boxTransform.matrix);
+  });
+  batch.instanceMatrix.needsUpdate=true;
+  arenaDecor.add(batch);
 }
 const midfieldCircle=new THREE.Mesh(
   new THREE.RingGeometry(.5,.512,48),
@@ -746,12 +764,41 @@ fillControllerOptions();
 function getPad(){const pads=navigator.getGamepads?navigator.getGamepads():[];if(radio.index!==null&&pads[radio.index])return pads[radio.index];for(const p of pads){if(p){radio.index=p.index;return p}}return null}
 function dead(v){const d=+radioDeadzone.value;return Math.abs(v)<d?0:(Math.sign(v)*(Math.abs(v)-d)/(1-d))}
 function axisValue(name){const gp=getPad();if(!gp)return 0;const map={roll:mapRoll,pitch:mapPitch,yaw:mapYaw,throttle:mapThrottle}[name];const rev={roll:revRoll,pitch:revPitch,yaw:revYaw,throttle:revThrottle}[name];const idx=+map.value;let v=(gp.axes[idx]??0)-(radio.centers[idx]??0);v=clamp(v,-1,1);if(rev.checked)v=-v;return dead(v)}
+const axisRows=['Roll','Pitch','Yaw','Throttle'].map(name=>{
+ const row=document.createElement('div');
+ row.className='axisLive';
+ row.innerHTML='<span></span><div class="axisTrack"><i></i><b></b></div><span></span>';
+ row.firstElementChild.textContent=name;
+ axisMonitor.append(row);
+ return {row,bar:row.querySelector('b'),value:row.lastElementChild};
+});
+const axisPlaceholder=document.createElement('div');
+axisPlaceholder.className='small';
+axisPlaceholder.textContent='等待裝置輸入…';
+axisMonitor.append(axisPlaceholder);
+function writeText(element,value){
+ const next=String(value);
+ if(element.textContent!==next)element.textContent=next;
+}
 function updateControllerUI(){
- const gp=getPad();inputBadge.classList.toggle('connected',!!gp);inputLabel.textContent=gp?'FPV 遙控器已連線':'鍵盤控制';
- gamepadStatus.textContent=gp?`已連線：${gp.id}｜Axes ${gp.axes.length}｜Buttons ${gp.buttons.length}`:'尚未偵測到 USB 遙控器。請接上遙控器並撥動搖桿或按任意按鍵。';
- if(!gp){axisMonitor.innerHTML='<div class="small">等待裝置輸入…</div>';return}
- const names=['Roll','Pitch','Yaw','Throttle'];const vals=[axisValue('roll'),axisValue('pitch'),axisValue('yaw'),axisValue('throttle')];
- axisMonitor.innerHTML=names.map((n,i)=>{const v=vals[i],left=v<0?50+v*50:50,w=Math.abs(v)*50;return `<div class="axisLive"><span>${n}</span><div class="axisTrack"><i></i><b style="left:${left}%;width:${w}%"></b></div><span>${v.toFixed(2)}</span></div>`}).join('');
+ const gp=getPad();
+ inputBadge.classList.toggle('connected',!!gp);
+ writeText(inputLabel,gp?'FPV 遙控器已連線':'鍵盤控制');
+ if(!controllerModal.classList.contains('open'))return;
+ writeText(gamepadStatus,gp?`已連線：${gp.id}｜Axes ${gp.axes.length}｜Buttons ${gp.buttons.length}`:'尚未偵測到 USB 遙控器。請接上遙控器並撥動搖桿或按任意按鍵。');
+ axisPlaceholder.hidden=!!gp;
+ axisRows.forEach(({row,bar,value},i)=>{
+   row.style.display=gp?'':'none';
+   if(!gp)return;
+   const v=axisValue(['roll','pitch','yaw','throttle'][i]);
+   bar.style.left=`${v<0?50+v*50:50}%`;
+   bar.style.width=`${Math.abs(v)*50}%`;
+   writeText(value,v.toFixed(2));
+ });
+}
+function pollControllerArm(){
+ const gp=getPad();
+ if(!gp){radio.lastArm=false;return;}
  const bi=+armButton.value;if(bi>=0&&gp.buttons[bi]){const pressed=gp.buttons[bi].pressed;if(pressed&&!radio.lastArm){player.armed=!player.armed;status.textContent=player.armed?'ARMED｜FPV 遙控器':'DISARMED｜FPV 遙控器'}radio.lastArm=pressed}else radio.lastArm=false;
 }
 window.addEventListener('gamepadconnected',e=>{radio.index=e.gamepad.index;updateControllerUI();});window.addEventListener('gamepaddisconnected',e=>{if(radio.index===e.gamepad.index)radio.index=null;updateControllerUI();});
@@ -827,7 +874,7 @@ function scoreCheck(){
  }
 }
 function updateCamera(){const p=player.group.position,fwd=forwardVec(player.yaw);if(viewMode==='fpv'){camera.position.copy(p).add(new THREE.Vector3(0,.015,0)).addScaledVector(fwd,.055);const look=p.clone().addScaledVector(fwd,2);look.y+=.02;camera.lookAt(look);}else if(viewMode==='pilot'){camera.position.set(-3.65,1.65,0);camera.lookAt(new THREE.Vector3(.4,1.45,0));}else{ const desired=p.clone().add(new THREE.Vector3(0,.65,0)).addScaledVector(fwd,-1.25); camera.position.lerp(desired,.12); const look=p.clone().addScaledVector(fwd,.6); look.y+=.1; camera.lookAt(look); } }
-function updateHUD(){ hudAlt.textContent=player.group.position.y.toFixed(2)+' m'; hudSpeed.textContent=player.vel.length().toFixed(2)+' m/s'; hudYaw.textContent=Math.round(THREE.MathUtils.radToDeg(player.yaw)%360)+'°'; hudMode.textContent=flightMode.toUpperCase(); hudHealth.textContent=Math.round(player.health)+'%'; hudRole.textContent=player.role.toUpperCase()+(player.retreatRequired?' / RETREAT':'');hudCamera.textContent=viewMode.toUpperCase(); redScore.textContent=score.red; blueScore.textContent=score.blue; clock.textContent=`${String(Math.floor(matchTime/60)).padStart(2,'0')}:${String(Math.floor(matchTime%60)).padStart(2,'0')}`; }
+function updateHUD(){ writeText(hudAlt,player.group.position.y.toFixed(2)+' m'); writeText(hudSpeed,player.vel.length().toFixed(2)+' m/s'); writeText(hudYaw,Math.round(THREE.MathUtils.radToDeg(player.yaw)%360)+'°'); writeText(hudMode,flightMode.toUpperCase()); writeText(hudHealth,Math.round(player.health)+'%'); writeText(hudRole,player.role.toUpperCase()+(player.retreatRequired?' / RETREAT':''));writeText(hudCamera,viewMode.toUpperCase()); writeText(redScore,score.red); writeText(blueScore,score.blue); writeText(clock,`${String(Math.floor(matchTime/60)).padStart(2,'0')}:${String(Math.floor(matchTime%60)).padStart(2,'0')}`); }
 function academyCheck(){
  if(!activeLevel)return;
  const now=performance.now(),dt=Math.min(.1,(now-lastAcademyTick)/1000); lastAcademyTick=now;
@@ -1084,7 +1131,7 @@ thirdBtn.addEventListener('click',()=>setView('third')); fpvBtn.addEventListener
 // ===== V10 competition AI, referee and scoring patch =====
 const Referee={state:'READY',redFouls:0,blueFouls:0,penaltyTeam:null,penaltyTimer:0,retreatRed:false,retreatBlue:false,lastGoalTeam:null,goalHangTimer:{red:0,blue:0}};
 let scoreStats={start:0,hits:0,maxDev:0,cover:0,safety:true,result:'進行中',origin:new THREE.Vector3(),visited:new Set()};
-function uiRef(){ if(typeof refState!=='undefined'){refState.textContent=Referee.state;redFouls.textContent=Referee.redFouls;blueFouls.textContent=Referee.blueFouls;} }
+function uiRef(){ if(typeof refState!=='undefined'){writeText(refState,Referee.state);writeText(redFouls,Referee.redFouls);writeText(blueFouls,Referee.blueFouls);} }
 
 function statIdForDrone(d){return d?.statId||d?.netId||d?.userData?.statId||null;}
 function ensureDroneStat(id,name,team,role){
@@ -1421,7 +1468,20 @@ function ensureRestOverlay(){
  restCountdown=restOverlay.querySelector('#restCountdown');restSummary=restOverlay.querySelector('#restSummary');restStats=restOverlay.querySelector('#restStats');
 }
 function fmtRest(sec){sec=Math.max(0,Math.ceil(sec||0));return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');}
-function showRestOverlay(){ensureRestOverlay();restOverlay.style.display='flex';restCountdown.textContent=fmtRest(series.restLeft);const last=series.history[series.history.length-1];restSummary.textContent=last?`第 ${last.round} 局：紅 ${last.red} : ${last.blue} 藍｜系列賽 紅 ${series.wins.red} : ${series.wins.blue} 藍`:`系列賽 紅 ${series.wins.red} : ${series.wins.blue} 藍`;if(restStats)restStats.innerHTML='<div style="font-weight:800;margin-bottom:6px">本局 / 累積量化</div>'+statsTableHTML(last?.droneStats||snapshotDroneStats());}
+let displayedRestRound=null;
+function showRestOverlay(){
+ ensureRestOverlay();
+ restOverlay.style.display='flex';
+ writeText(restCountdown,fmtRest(series.restLeft));
+ const last=series.history.at(-1);
+ if(restStats&&displayedRestRound!==last){
+   restStats.innerHTML='<div style="font-weight:800;margin-bottom:6px">本局 / 累積量化</div>'+
+     statsTableHTML(last?.droneStats||snapshotDroneStats());
+   displayedRestRound=last;
+ }
+ writeText(restSummary,last?`第 ${last.round} 局：紅 ${last.red} : ${last.blue} 藍｜系列賽 紅 ${series.wins.red} : ${series.wins.blue} 藍`:
+   `系列賽 紅 ${series.wins.red} : ${series.wins.blue} 藍`);
+}
 function hideRestOverlay(){if(restOverlay)restOverlay.style.display='none';}
 
 const HOST_MESSAGES=new Set([
@@ -1575,15 +1635,25 @@ function showSeriesResult(){
  if(finalStats)finalStats.innerHTML='';
  seriesOverlay.style.display='flex';
 }
+const SCORE_SYNC_INTERVAL=.1;
+let scoreSyncElapsed=0;
+let lastScoreSnapshot=null;
 function netTick(dt){
  if(netPeer&&mode==='match'){
    netTick.acc=(netTick.acc||0)+dt;if(netTick.acc>.05){netTick.acc=0;const p=player.group.position;const msg={type:'state',id:netPeer.id,state:{x:p.x,y:p.y,z:p.z,yaw:player.yaw,team:player.team,role:player.role}};sendHost(msg);}
  }
  if(isHost&&series.phase==='play'&&matchRunning){
-    broadcast({type:'score',round:series.round,matchTime,score:{...score},droneStats:snapshotDroneStats()});
+    scoreSyncElapsed+=dt;
+    const changed=!lastScoreSnapshot||lastScoreSnapshot.seriesScore!==score||
+      lastScoreSnapshot.red!==score.red||lastScoreSnapshot.blue!==score.blue;
+    if(changed||scoreSyncElapsed>=SCORE_SYNC_INTERVAL||matchTime<=0){
+      broadcast({type:'score',round:series.round,matchTime,score:{...score},droneStats:snapshotDroneStats()});
+      lastScoreSnapshot={seriesScore:score,...score};
+      scoreSyncElapsed=0;
+    }
     if(matchTime<=0)finishRoundHost();
   }
- if(series.phase==='rest'){series.restLeft=Math.max(0,series.restLeft-dt);showRestOverlay();if(restCountdown)restCountdown.textContent=fmtRest(series.restLeft);seriesState.textContent=`REST｜下一局 ${Math.ceil(series.restLeft)} 秒｜紅 ${series.wins.red}:${series.wins.blue} 藍`;status.textContent=`中場休息｜下一局 ${fmtRest(series.restLeft)}`;if(isHost){restBroadcastAcc+=dt;if(restBroadcastAcc>=1){restBroadcastAcc=0;broadcast({type:'restTick',restLeft:series.restLeft});}if(series.restLeft<=0)startNextRoundHost();}}
+ if(series.phase==='rest'){series.restLeft=Math.max(0,series.restLeft-dt);showRestOverlay();writeText(seriesState,`REST｜下一局 ${Math.ceil(series.restLeft)} 秒｜紅 ${series.wins.red}:${series.wins.blue} 藍`);writeText(status,`中場休息｜下一局 ${fmtRest(series.restLeft)}`);if(isHost){restBroadcastAcc+=dt;if(restBroadcastAcc>=1){restBroadcastAcc=0;broadcast({type:'restTick',restLeft:series.restLeft});}if(series.restLeft<=0)startNextRoundHost();}}
 }
 openMulti.addEventListener('click',()=>{multiModal.style.display='flex';renderPlayerList();updateRoleAvailability();});closeMulti.addEventListener('click',()=>multiModal.style.display='none');hostRoom.addEventListener('click',hostMultiplayer);joinRoom.addEventListener('click',joinMultiplayer);
 readyBtn.addEventListener('click',()=>{if(!updateRoleAvailability()){netStatus.textContent='⛔ 目前角色席位已被占用，請先改選可用角色。';return;}localReady=!localReady;readyBtn.textContent=localReady?'取消準備':'我已準備';updateProfileNet()});
@@ -1644,11 +1714,15 @@ window.addEventListener('keydown', e => {
   }
 });
 
+let displayElapsed=Infinity;
 function animate(){
  try{
    const rawDelta = clock3.getDelta();
    const frameTime = Math.min(0.1, rawDelta);
-   if(!checkoutLocked)accumulator += frameTime;
+   if(!checkoutLocked){
+     accumulator += frameTime;
+     pollControllerArm();
+   }
 
    while (accumulator >= FIXED_STEP) {
      updatePlayer(FIXED_STEP);
@@ -1680,8 +1754,12 @@ function animate(){
      screenShake = Math.max(0, screenShake - frameTime * 0.5);
    }
 
-   updateHUD(); 
-   updateControllerUI(); 
+   displayElapsed+=frameTime;
+   if(displayElapsed>=.1){
+     displayElapsed=0;
+     updateHUD();
+     updateControllerUI();
+   }
    renderer.render(scene,camera);
     if(loading.isConnected){
       loading.remove();
