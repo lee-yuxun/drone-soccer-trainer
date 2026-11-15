@@ -1424,26 +1424,70 @@ function getAIDifficultyParams(){
 let cfg=null;
 function refreshAIDifficultyConfig(){ cfg=getAIDifficultyParams(); return cfg; }
 
-function updateAttackerAI(d,dt){
- const cfg=refreshAIDifficultyConfig();
-const p=d.group.position;
- const enemyTeam=d.team==='red'?'blue':'red';
- const defenders=[player,...ai,...remoteDrones.values()].filter(q=>q!==d&&q.team===enemyTeam&&q.role==='defender');
- const dir=d.team==='red'?1:-1, goalX=d.team==='red'?goals[1].center.x:goals[0].center.x;
- let nearest=null,nd=99; for(const q of defenders){const ds=q.group.position.distanceTo(p);if(ds<nd){nd=ds;nearest=q}}
- // Build a real attacking run: approach through a lane, then converge to the center of the opponent goal.
- let target;
- const distToGoal=Math.abs(goalX-p.x);
- if(distToGoal>cfg.finishRange){
-   let lane=d.attackLane??(d.team==='red'?.62:-.62);
-   if(nearest&&nd<cfg.evadeRange){ const dz=p.z-nearest.group.position.z; if(Math.abs(dz)<.18)lane=(p.z>=nearest.group.position.z?cfg.evadeOffset:-cfg.evadeOffset); else lane=clamp(p.z+Math.sign(dz)*cfg.evadeOffset,-.98,.98); }
-   const attackY=nearest&&nd<cfg.evadeRange ? clamp(p.y+(nearest.group.position.y>p.y?-cfg.evadeOffset:cfg.evadeOffset),.55,3.35) : (d.team==='red'?1.45:2.55);
-   target=new THREE.Vector3(goalX-dir*.72,attackY,lane);
- }else{
-   // Final scoring line aims just behind the goal plane, so the sphere must legally cross it from the field side.
-   target=new THREE.Vector3(goalX+dir*.26,GOAL_Y,0);
+function steerAttacker(d,target,maxSpeed,response,dt){
+ const delta=target.sub(d.group.position);
+ const distance=delta.length();
+ // Slow near waypoints so the drone can line up without orbiting the target.
+ if(distance>0)delta.multiplyScalar(Math.min(maxSpeed,distance*4)/distance);
+ d.vel.lerp(delta,Math.min(1,dt*response));
+}
+function updateAttackerAI(d,dt,cfg){
+ const p=d.group.position;
+ const red=d.team==='red';
+ const direction=red?1:-1;
+ const goalX=goals[red?1:0].center.x;
+ const goalDepth=(p.x-goalX)*direction;
+ const retreat=red?Referee.retreatRed:Referee.retreatBlue;
+ const response=cfg.attackResponse;
+ const clearanceY=GOAL_Y-.58;
+
+ // After a goal or a miss, return below the ring. Crossing through
+ // the opening backwards would count as a foul.
+ if(goalDepth>0&&!d.goalRecovery)d.goalRecovery='lower';
+ if(d.goalRecovery==='lower'&&p.y<=clearanceY+.1)d.goalRecovery='return';
+ if(d.goalRecovery==='return'&&goalDepth<-.56)d.goalRecovery=null;
+ if(d.goalRecovery){
+   d.attackCommitted=false;
+   const x=d.goalRecovery==='lower'?goalX+direction*.32:goalX-direction*.84;
+   steerAttacker(d,new THREE.Vector3(x,clearanceY,p.z),cfg.attackCruise,Math.max(5,response),dt);
+   return;
  }
- const delta=target.sub(p); if(delta.lengthSq()>1e-6){ const speed=distToGoal<cfg.finishRange?cfg.attackFinish:(nd<cfg.evadeRange?cfg.attackBurst:cfg.attackCruise); d.vel.lerp(delta.normalize().multiplyScalar(speed),Math.min(1,dt*cfg.attackResponse)); }
+ if(retreat){
+   d.attackCommitted=false;
+   steerAttacker(d,new THREE.Vector3(-direction*.8,1.3,0),cfg.attackCruise,response,dt);
+   return;
+ }
+
+ const aligned=Math.hypot(p.y-GOAL_Y,p.z)<.055&&Math.hypot(d.vel.y,d.vel.z)<.24;
+ if(goalDepth<-.8)d.attackCommitted=false;
+ if(goalDepth>-.65&&goalDepth<-.19&&aligned)d.attackCommitted=true;
+ if(d.attackCommitted){
+   // Stop driving into the rim if a defender knocks the drone off line.
+   if(Math.hypot(p.y-GOAL_Y,p.z)>.095)d.attackCommitted=false;
+   else {
+     steerAttacker(d,new THREE.Vector3(goalX+direction*.32,GOAL_Y,0),cfg.attackFinish,Math.max(5,response),dt);
+     return;
+   }
+ }
+ if(goalDepth>=-cfg.finishRange){
+   steerAttacker(d,new THREE.Vector3(goalX-direction*.46,GOAL_Y,0),cfg.attackCruise,Math.max(5,response),dt);
+   return;
+ }
+
+ const defenders=[player,...ai,...remoteDrones.values()].filter(other=>other.team!==d.team&&other.role==='defender');
+ let nearest=null,nearestDistance=cfg.evadeRange;
+ for(const defender of defenders){
+   const distance=defender.group.position.distanceTo(p);
+   if(distance<nearestDistance){nearest=defender;nearestDistance=distance;}
+ }
+ let lane=d.attackLane??direction*.62;
+ let height=red?1.45:2.55;
+ if(nearest){
+   const other=nearest.group.position;
+   lane=clamp(p.z+(p.z>=other.z?1:-1)*cfg.evadeOffset,-.98,.98);
+   height=clamp(p.y+(p.y>=other.y?1:-1)*cfg.evadeOffset,.55,ARENA.H-d.radius);
+ }
+ steerAttacker(d,new THREE.Vector3(goalX-direction*.72,height,lane),nearest?cfg.attackBurst:cfg.attackCruise,response,dt);
 }
 const oldUpdateAI=typeof updateAI==='function'?updateAI:null;
 updateAI=function(dt){
@@ -1480,12 +1524,8 @@ updateAI=function(dt){
    return new THREE.Vector3(x,y,z);
  }
  for(const d of ai){
-   if(d.team==='blue'&&d.role==='attacker'){
-     if(Referee.retreatBlue){ const tx=new THREE.Vector3(.8,1.3,0); d.vel.lerp(tx.sub(d.group.position).normalize().multiplyScalar(1.7+getAIDifficultyParams().n*.8),dt*(1.7+getAIDifficultyParams().n*.9)); if(d.group.position.x>0){Referee.retreatBlue=false;refMessage.textContent='藍隊完成回場，可重新進攻';} }
-     else updateAttackerAI(d,dt);
-   }else if(d.team==='red'&&d.role==='attacker'){
-     if(Referee.retreatRed){ const tx=new THREE.Vector3(-.8,1.3,0); d.vel.lerp(tx.sub(d.group.position).normalize().multiplyScalar(1.6+getAIDifficultyParams().n*.8),dt*(1.7+getAIDifficultyParams().n*.9)); if(d.group.position.x<0){Referee.retreatRed=false;refMessage.textContent='紅隊完成回場，可重新進攻';} }
-     else updateAttackerAI(d,dt);
+   if(d.role==='attacker'){
+     updateAttackerAI(d,dt,cfg);
    }else{
      const target=defenderTarget(d);
      const delta=target.sub(d.group.position);
