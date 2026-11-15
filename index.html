@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Drone Soccer Trainer V14.0 PRO WebGL 3D</title>
+<title>Drone Soccer Trainer V14.1 PRO WebGL 3D</title>
 <style>
 :root{--bg:#071019;--panel:#0d1721;--text:#f4f7fb;--muted:#9db0c3;--line:#284056;--red:#ff545c;--blue:#4da3ff;--gold:#ffd166;--green:#4ad886}
 *{box-sizing:border-box}
@@ -242,7 +242,7 @@ body.training-mode #loadLevel{flex:0 0 auto}
 <div id="app">
   <div class="header">
     <div class="brand">
-      <h1>DRONE SOCCER TRAINER <span style="font-size:11px;color:#9db0c3">V14.0 PRO</span></h1>
+      <h1>DRONE SOCCER TRAINER <span style="font-size:11px;color:#9db0c3">V14.1 PRO</span></h1>
       
     </div>
     <div class="tabs">
@@ -1185,7 +1185,7 @@ const series={bestOf:3,roundMinutes:3,restMinutes:2,wins:{red:0,blue:0},round:0,
 const droneStats={};
 let lastValidTeam='red',lastValidRole='attacker';
 let myEffectiveRole=null;let restOverlay=null,restCountdown=null,restSummary=null,restStats=null,restBroadcastAcc=0;
-function roomPeerId(code){return 'ds-'+code.toLowerCase()+'-v122';}
+function roomPeerId(code){return 'ds-'+code.toLowerCase()+'-v141';}
 function makeRoomCode(){return Math.random().toString(36).slice(2,8).toUpperCase();}
 async function ensurePeer(){
  if(PeerClass)return true;
@@ -1297,8 +1297,13 @@ function fmtRest(sec){sec=Math.max(0,Math.ceil(sec||0));return String(Math.floor
 function showRestOverlay(){ensureRestOverlay();restOverlay.style.display='flex';restCountdown.textContent=fmtRest(series.restLeft);const last=series.history[series.history.length-1];restSummary.textContent=last?`第 ${last.round} 局：紅 ${last.red} : ${last.blue} 藍｜系列賽 紅 ${series.wins.red} : ${series.wins.blue} 藍`:`系列賽 紅 ${series.wins.red} : ${series.wins.blue} 藍`;if(restStats)restStats.innerHTML='<div style="font-weight:800;margin-bottom:6px">本局 / 累積量化</div>'+statsTableHTML(last?.droneStats||snapshotDroneStats());}
 function hideRestOverlay(){if(restOverlay)restOverlay.style.display='none';}
 
+const HOST_MESSAGES=new Set([
+  'roster','profileRejected','seriesConfig','seriesStart','score',
+  'refereeSync','roundEnd','restTick','seriesEnd'
+]);
 function handleNetMessage(msg,from){
  if(!msg||typeof msg!=='object')return;
+ if(HOST_MESSAGES.has(msg.type)&&(isHost||!hostConn||from!==hostConn.peer))return;
  if(msg.type==='hello'){
    if(isHost&&!profileAccepted(msg.profile,msg.profile.id)){sendToPeer(from,{type:'profileRejected',reason:'你選擇的角色已被其他玩家占用，請改選可用角色',profile:null,roster:[myNetProfile(),...netPlayers.values()]});renderPlayerList();}
    else {netPlayers.set(msg.profile.id,msg.profile);renderPlayerList();if(isHost){broadcast({type:'roster',players:[myNetProfile(),...netPlayers.values()]});}}
@@ -1314,7 +1319,15 @@ function handleNetMessage(msg,from){
  if(msg.type==='state'){syncRemoteState(msg.id,msg.state);if(isHost)broadcast(msg,from);}
  if(msg.type==='seriesConfig'){Object.assign(series,msg.series);series.needed=Math.floor(series.bestOf/2)+1;updateSeriesUI();}
  if(msg.type==='seriesStart'){Object.assign(series,msg.series);hideRestOverlay();setMode('match');applyMultiplayerLineup(series.lineup||[]);updateTeamAppearance(player);updateRoleAppearance(player);resetRoundDroneStats();score={red:0,blue:0};resetGoalPlaneTracking();matchTime=series.roundMinutes*60;matchRunning=true;player.armed=true;multiModal.style.display='none';status.textContent=`多人系列賽 第 ${series.round} 局開始`;updateSeriesUI();updateHUD();}
- if(msg.type==='score'){score=msg.score;if(msg.droneStats){for(const s of msg.droneStats)droneStats[s.id]={...s};}redScore.textContent=score.red;blueScore.textContent=score.blue;}
+ if(msg.type==='score'&&series.phase==='play'&&msg.round===series.round){
+    matchTime=msg.matchTime;
+    score=msg.score;
+    if(msg.droneStats){
+      for(const stat of msg.droneStats)droneStats[stat.id]={...stat};
+    }
+    redScore.textContent=score.red;
+    blueScore.textContent=score.blue;
+  }
  if(msg.type==='refereeSync'){
    Referee.redFouls=msg.redFouls??Referee.redFouls;
    Referee.blueFouls=msg.blueFouls??Referee.blueFouls;
@@ -1403,6 +1416,8 @@ function finishRoundHost(){
 }
 function startNextRoundHost(){hideRestOverlay();series.round++;series.phase='play';setMode('match');applyMultiplayerLineup(series.lineup||[]);updateTeamAppearance(player);updateRoleAppearance(player);resetRoundDroneStats();score={red:0,blue:0};resetGoalPlaneTracking();matchTime=series.roundMinutes*60;matchRunning=true;player.armed=true;multiModal.style.display='none';broadcast({type:'seriesStart',series:{...series,wins:{...series.wins},history:[...series.history],lineup:(series.lineup||[]).map(x=>({...x}))}});updateSeriesUI();updateHUD();status.textContent=`第 ${series.round} 局開始`; }
 function showSeriesResult(){
+ matchRunning=false;
+ player.armed=false;
  hideRestOverlay();
  const win=series.wins.red>series.wins.blue?'紅隊':'藍隊';
  const totalRed=series.history.reduce((sum,r)=>sum+(r.red||0),0);
@@ -1435,7 +1450,10 @@ function netTick(dt){
  if(netPeer&&mode==='match'){
    netTick.acc=(netTick.acc||0)+dt;if(netTick.acc>.05){netTick.acc=0;const p=player.group.position;const msg={type:'state',id:netPeer.id,state:{x:p.x,y:p.y,z:p.z,yaw:player.yaw,team:player.team,role:player.role}};sendHost(msg);}
  }
- if(isHost&&series.phase==='play'&&matchRunning){broadcast({type:'score',score:{...score},droneStats:snapshotDroneStats()});if(matchTime<=0)finishRoundHost();}
+ if(isHost&&series.phase==='play'&&matchRunning){
+    broadcast({type:'score',round:series.round,matchTime,score:{...score},droneStats:snapshotDroneStats()});
+    if(matchTime<=0)finishRoundHost();
+  }
  if(series.phase==='rest'){series.restLeft=Math.max(0,series.restLeft-dt);showRestOverlay();if(restCountdown)restCountdown.textContent=fmtRest(series.restLeft);seriesState.textContent=`REST｜下一局 ${Math.ceil(series.restLeft)} 秒｜紅 ${series.wins.red}:${series.wins.blue} 藍`;status.textContent=`中場休息｜下一局 ${fmtRest(series.restLeft)}`;if(isHost){restBroadcastAcc+=dt;if(restBroadcastAcc>=1){restBroadcastAcc=0;broadcast({type:'restTick',restLeft:series.restLeft});}if(series.restLeft<=0)startNextRoundHost();}}
 }
 openMulti.addEventListener('click',()=>{multiModal.style.display='flex';renderPlayerList();updateRoleAvailability();});closeMulti.addEventListener('click',()=>multiModal.style.display='none');hostRoom.addEventListener('click',hostMultiplayer);joinRoom.addEventListener('click',joinMultiplayer);
@@ -1501,8 +1519,10 @@ function animate(){
      if(mode==='match'){ 
        updateAI(FIXED_STEP); 
        if(matchRunning){ 
-         matchTime=Math.max(0,matchTime-FIXED_STEP); 
-         scoreCheck(); 
+         if(!netPeer||isHost){
+           matchTime=Math.max(0,matchTime-FIXED_STEP);
+           scoreCheck();
+         }
          if(matchTime<=0&&series.phase!=='play'){ 
            matchRunning=false; 
            player.armed=false; 
