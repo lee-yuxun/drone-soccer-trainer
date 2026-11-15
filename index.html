@@ -307,6 +307,12 @@ body.training-mode .layout>.card.side{overflow:auto!important}
  .score-team,.score-time{padding:5px 10px;gap:8px}
  .layout>.card.side,body.training-mode .layout>.card.side{bottom:68px}
 }
+#viewport #taskBox{position:absolute;z-index:3;top:16px;left:50%;transform:translateX(-50%);width:min(480px,calc(100% - 28px));max-height:none;overflow:visible;padding:9px 12px;border:1px solid #61768b;border-top:2px solid var(--hud-lime);background:#0a131fed;color:#edf5ff;pointer-events:none;font-size:12px}
+#taskBox .task-heading{display:flex;align-items:center;gap:8px;justify-content:space-between}
+#taskTitle{font-size:14px}
+#taskCountdown{color:var(--hud-lime);font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+#taskText{margin-top:3px;color:#c5d4e1}
+#taskProgress{margin-top:4px;color:#e2ffab}
 </style>
 </head>
 <body>
@@ -376,6 +382,11 @@ body.training-mode .layout>.card.side{overflow:auto!important}
           <div class="score-time"><b id="clock">03:00</b></div>
           <div class="score-team blue"><b id="blueScore">0</b> 藍隊</div>
         </div>
+        <section id="taskBox" aria-label="目前訓練任務" hidden>
+          <div class="task-heading"><strong id="taskTitle"></strong><span id="taskCountdown" hidden></span></div>
+          <div id="taskText"></div>
+          <div id="taskProgress"></div>
+        </section>
         <div class="crosshair" id="crosshair"></div>
         <div class="centermsg" id="status">載入中…</div>
       </div>
@@ -432,7 +443,7 @@ body.training-mode .layout>.card.side{overflow:auto!important}
         <div class="small" style="margin-top:6px">場地以空白網籠為基礎，再依訓練項目動態加入球門、角錐、航線與降落區。</div>
         <div id="levels" class="levels"></div>
         <button id="loadLevel" class="btn primary" style="width:100%;margin-top:6px">載入關卡</button>
-        <div id="taskBox" class="small" style="display:none;margin-top:8px;padding:8px;border:1px solid #29465d;border-radius:8px;background:#0e1b27"><b id="taskTitle" style="display:block;color:#fff;margin-bottom:4px"></b><div id="taskText"></div><div id="taskProgress" style="margin-top:4px;color:#9fe7b2"></div></div>
+
       </div>
 
       <div class="section" id="refPanel" style="display:none">
@@ -968,8 +979,14 @@ function scoreCheck(){
 }
 function updateCamera(){const p=player.group.position,fwd=forwardVec(player.yaw);if(viewMode==='fpv'){camera.position.copy(p).add(new THREE.Vector3(0,.015,0)).addScaledVector(fwd,.055);const look=p.clone().addScaledVector(fwd,2);look.y+=.02;camera.lookAt(look);}else if(viewMode==='pilot'){camera.position.set(-3.65,1.65,0);camera.lookAt(new THREE.Vector3(.4,1.45,0));}else{ const desired=p.clone().add(new THREE.Vector3(0,.65,0)).addScaledVector(fwd,-1.25); camera.position.lerp(desired,.12); const look=p.clone().addScaledVector(fwd,.6); look.y+=.1; camera.lookAt(look); } }
 function updateHUD(){ writeText(hudAlt,player.group.position.y.toFixed(2)+' m'); writeText(hudSpeed,player.vel.length().toFixed(2)+' m/s'); writeText(hudYaw,Math.round(THREE.MathUtils.radToDeg(player.yaw)%360)+'°'); writeText(hudMode,flightMode.toUpperCase()); writeText(hudHealth,Math.round(player.health)+'%'); writeText(hudRole,player.role.toUpperCase()+(player.retreatRequired?' / RETREAT':''));writeText(hudCamera,viewMode.toUpperCase()); writeText(redScore,score.red); writeText(blueScore,score.blue); writeText(clock,`${String(Math.floor(matchTime/60)).padStart(2,'0')}:${String(Math.floor(matchTime%60)).padStart(2,'0')}`); }
+const taskCountdown=document.getElementById('taskCountdown');
+let coursePassed=false;
+function showCourseCountdown(seconds,holding){
+ taskCountdown.hidden=false;
+ writeText(taskCountdown,`${holding?'剩餘':'待計時'} ${Math.ceil(Math.max(0,seconds))} 秒`);
+}
 function academyCheck(){
- if(!activeLevel)return;
+ if(!activeLevel||coursePassed)return;
  const now=performance.now(),dt=Math.min(.1,(now-lastAcademyTick)/1000); lastAcademyTick=now;
  const id=activeLevel[0],t=(now-levelStart)/1000,p=player.group.position;
  if(id===1){
@@ -978,9 +995,11 @@ function academyCheck(){
    if(stable&&nf.error<=25&&!level1Completed.has(nf.face.name)){
      if(level1Face===nf.face.name)level1Hold+=dt; else { level1Face=nf.face.name; level1Hold=dt; }
      if(level1Hold>=10){ level1Completed.add(nf.face.name); level1Hold=0; level1Face=null; status.textContent=`${nf.face.name} 10 秒完成`; }
-   }else if(!stable||nf.error>25){ level1Hold=0; level1Face=null; }
+   }else{ level1Hold=0; level1Face=null; }
+   const holding=level1Face!==null;
+   showCourseCountdown(10-level1Hold,holding);
    const done=[...level1Completed].join('、')||'尚未完成';
-   taskProgress.textContent=`已完成：${done}｜目前：${level1Face||nf.face.name} ${level1Hold.toFixed(1)}/10.0 秒｜穩定 ${stable?'✓':'✗'}`;
+   writeText(taskProgress,`已完成：${done}｜${holding?'保持'+level1Face+'穩定':level1Completed.has(nf.face.name)?'轉向尚未完成的方向':'飛到指定區域並穩定懸停'}`);
    if(level1Completed.size===4)pass();
    return;
  }
@@ -989,7 +1008,7 @@ function academyCheck(){
    const contact=updateGuideContact();
    if(courseStage===0&&checkpointReached(1.4,1.2,0,.14)){courseStage=1;status.textContent='去程完成｜請後退返回起點';}
    else if(courseStage===1&&checkpointReached(-1.4,1.2,0,.14)){courseStage=2;pass();return;}
-   taskProgress.textContent=`${courseStage===0?'去程：前往黃色端點':'回程：返回藍色起點'}｜提示線 ${contact.onLine?'接觸中 ✓':'未接觸'}｜${courseStage}/2 段完成`;
+   writeText(taskProgress,`${courseStage===0?'去程：前往黃色端點':'回程：返回藍色起點'}｜提示線 ${contact.onLine?'接觸中 ✓':'未接觸'}｜${courseStage}/2 段完成`);
    return;
  }
  // Level 3: 由原點向左，再向右回到原點
@@ -997,7 +1016,7 @@ function academyCheck(){
    const contact=updateGuideContact();
    if(courseStage===0&&checkpointReached(0,1.2,-1.1,.14)){courseStage=1;status.textContent='左移完成｜請向右返回原點';}
    else if(courseStage===1&&checkpointReached(0,1.2,0,.14)){courseStage=2;pass();return;}
-   taskProgress.textContent=`${courseStage===0?'左移：前往黃色端點':'右移：返回藍色原點'}｜提示線 ${contact.onLine?'接觸中 ✓':'未接觸'}｜${courseStage}/2 段完成`;
+   writeText(taskProgress,`${courseStage===0?'左移：前往黃色端點':'右移：返回藍色原點'}｜提示線 ${contact.onLine?'接觸中 ✓':'未接觸'}｜${courseStage}/2 段完成`);
    return;
  }
  // Level 4: 1m 5秒 → 2.5m 5秒 → 0.5m 5秒 → 著陸
@@ -1008,10 +1027,13 @@ function academyCheck(){
      const inside=Math.hypot(p.x,p.z)<=.30&&Math.abs(p.y-st.y)<=.22&&player.vel.length()<.30;
      if(inside) level4Hold+=dt; else level4Hold=0;
      if(level4Hold>=5){level4Stage++;level4Hold=0;status.textContent=`${st.name} 完成`;}
-     taskProgress.textContent=`第 ${level4Stage+1}/4 段｜${st.name} ${level4Hold.toFixed(1)}/5.0 秒｜進入${st.color}半透明球即可計時`;
+     showCourseCountdown(5-level4Hold,inside&&level4Hold>0);
+     const next=steps[level4Stage];
+     writeText(taskProgress,next?`第 ${level4Stage+1}/4 段｜${next.name}｜在${next.color}球內保持穩定`:'第 4/4 段｜請降落在白色圓形降落區');
+     if(!next)taskCountdown.hidden=true;
    }else{
      const landed=p.y<=player.radius+.05&&player.vel.length()<.18&&Math.hypot(p.x,p.z)<=.35;
-     taskProgress.textContent=`第 4/4 段｜請降落在白色圓形降落區｜${landed?'著陸 ✓':'尚未著陸'}`;
+     writeText(taskProgress,`第 4/4 段｜請降落在白色圓形降落區｜${landed?'著陸 ✓':'尚未著陸'}`);
      if(landed){pass();return;}
    }
    return;
@@ -1031,7 +1053,7 @@ function academyCheck(){
        if(level6CCW>=350){pass();return;}
      }
    }
-   taskProgress.textContent=`${level6Phase===0?'順時針':'逆時針'}旋轉｜順時針 ${Math.min(360,level6CW).toFixed(0)}° / 360°｜逆時針 ${Math.min(360,level6CCW).toFixed(0)}° / 360°｜定點 ${inside?'✓':'請回到黃色判定球'}`;
+   writeText(taskProgress,`${level6Phase===0?'順時針':'逆時針'}旋轉｜順時針 ${Math.min(360,level6CW).toFixed(0)}° / 360°｜逆時針 ${Math.min(360,level6CCW).toFixed(0)}° / 360°｜定點 ${inside?'✓':'請回到黃色判定球'}`);
    return;
  }
  // Level 10: 穿門 → 碰觸門後黃色提示點 → 180° 轉向 → 返回藍色提示點 → 降落
@@ -1048,14 +1070,14 @@ function academyCheck(){
      if(landed){pass();return;}
    }
    const labels=['穿越球門','碰觸門後黃色提示點','原地 180° 轉向','返回藍色提示點','精準降落'];
-   taskProgress.textContent=`第 ${Math.min(5,level10Stage+1)}/5 段｜${labels[Math.min(4,level10Stage)]}`;
+   writeText(taskProgress,`第 ${Math.min(5,level10Stage+1)}/5 段｜${labels[Math.min(4,level10Stage)]}`);
    return;
  }
  // Level 11/12: 圓形航線逐段變色，完成色為綠色
  if(id===11||id===12){
    const contact=updateGuideContact();
    const pct=Math.round(contact.coverage*100);
-   taskProgress.textContent=`${id===11?'順時針':'逆時針'}圓形航線｜已通過綠色 ${pct}%｜未通過灰色 ${100-pct}%｜目前 ${contact.onLine?'在線上 ✓':'未接觸提示線'}`;
+   writeText(taskProgress,`${id===11?'順時針':'逆時針'}圓形航線｜已通過綠色 ${pct}%｜未通過灰色 ${100-pct}%｜目前 ${contact.onLine?'在線上 ✓':'未接觸提示線'}`);
    if(contact.coverage>=.92){pass();return;}
    return;
  }
@@ -1063,7 +1085,7 @@ function academyCheck(){
  if(id===13||id===14){
    const contact=updateGuideContact();
    const pct=Math.round(contact.coverage*100);
-   taskProgress.textContent=`${id===13?'正飛直向倒 8':'機頭跟隨直向倒 8'}｜已通過綠色 ${pct}%｜未通過灰色 ${100-pct}%｜目前 ${contact.onLine?'在線上 ✓':'未接觸提示線'}`;
+   writeText(taskProgress,`${id===13?'正飛直向倒 8':'機頭跟隨直向倒 8'}｜已通過綠色 ${pct}%｜未通過灰色 ${100-pct}%｜目前 ${contact.onLine?'在線上 ✓':'未接觸提示線'}`);
    if(contact.coverage>=.92){pass();return;}
    return;
  }
@@ -1071,14 +1093,14 @@ function academyCheck(){
  if(id===7){
    const wps=[[1.05,1.2,-.7],[0,1.2,0],[-1.05,1.2,-.7],[0,1.2,0]];
    if(courseStage<wps.length&&checkpointReached(...wps[courseStage],.14)){courseStage++; if(courseStage===wps.length){pass();return;}}
-   taskProgress.textContent=`X 字分段 ${courseStage}/4｜依序：右前 → 原點 → 左前 → 原點`;
+   writeText(taskProgress,`X 字分段 ${courseStage}/4｜依序：右前 → 原點 → 左前 → 原點`);
    return;
  }
  // Level 8: 前進再後退返回
  if(id===8){
    if(courseStage===0&&checkpointReached(1,1.2,0,.13)){courseStage=1;status.textContent='前進完成｜請後退返回';}
    else if(courseStage===1&&checkpointReached(-1,1.2,0,.13)){courseStage=2;pass();return;}
-   taskProgress.textContent=`${courseStage===0?'前進段':'後退返回段'}｜${courseStage}/2 段完成`;
+   writeText(taskProgress,`${courseStage===0?'前進段':'後退返回段'}｜${courseStage}/2 段完成`);
    return;
  }
  // Level 17: 到停止點，穩定3秒，再返回
@@ -1086,18 +1108,20 @@ function academyCheck(){
    if(courseStage===0&&checkpointReached(1.8,1.2,0,.16)){courseStage=1;courseHold=0;status.textContent='已到急停區｜保持靜止 3 秒';}
    if(courseStage===1){ if(player.vel.length()<.22&&checkpointReached(1.8,1.2,0,.20))courseHold+=dt; else courseHold=0; if(courseHold>=3){courseStage=2;status.textContent='急停完成｜請倒退返回起點';} }
    if(courseStage===2&&checkpointReached(-1.4,1.2,0,.14)){courseStage=3;pass();return;}
-   taskProgress.textContent=courseStage===0?'前往紅色急停點':courseStage===1?`急停 ${courseHold.toFixed(1)}/3.0 秒`:'倒退返回起點';
+   if(courseStage===1)showCourseCountdown(3-courseHold,courseHold>0);
+   else taskCountdown.hidden=true;
+   writeText(taskProgress,courseStage===0?'前往紅色急停點':courseStage===1?'在急停區保持靜止':'倒退返回起點');
    return;
  }
  const contact=updateGuideContact();
  const coveragePct=Math.round(contact.coverage*100);
- taskProgress.textContent=`時間 ${t.toFixed(1)} 秒｜${contact.onLine?'球形護框接觸提示線 ✓':'未接觸提示線'}｜綠色已通過 ${coveragePct}%｜灰色未通過 ${100-coveragePct}%`;
+ writeText(taskProgress,`時間 ${t.toFixed(1)} 秒｜${contact.onLine?'球形護框接觸提示線 ✓':'未接觸提示線'}｜綠色已通過 ${coveragePct}%｜灰色未通過 ${100-coveragePct}%`);
  const stagedLevels=new Set([2,3,4,7,8,17]);
  const pathLevels=new Set([5,15,16,18,20,21,22,24,25,26,27,28,29,30]);
  if(!stagedLevels.has(id)&&pathLevels.has(id)&&guideSegments.length&&contact.coverage>=.92){ pass(); return; }
  if(id===9&&p.x>2.0&&Math.hypot(p.y-GOAL_Y,p.z)<GOAL_R-player.radius*.55){ pass(); return; }
 }
-function pass(){status.textContent=`LEVEL ${activeLevel[0]} PASS｜${activeLevel[1]}`;taskProgress.textContent='✅ 已達成目前自動判定條件';player.armed=false;}
+function pass(){coursePassed=true;taskCountdown.hidden=true;status.textContent=`LEVEL ${activeLevel[0]} PASS｜${activeLevel[1]}`;writeText(taskProgress,'✅ 已達成目前自動判定條件');player.armed=false;}
 function renderLevels(){ const range=tier.value==='bird'?[1,10]:tier.value==='sparrow'?[11,20]:[21,30]; levels.innerHTML=''; LEVELS.filter(l=>l[0]>=range[0]&&l[0]<=range[1]).forEach(l=>{ const b=document.createElement('button'); b.type='button'; b.className='level'+(l[0]===selectedLevel?' sel':''); b.textContent=`Level ${l[0]}｜${l[1]}`; b.addEventListener('click',()=>{selectedLevel=l[0];renderLevels()}); levels.appendChild(b); }); }
 function setView(v){viewMode=v;thirdBtn.classList.toggle('primary',v==='third');fpvBtn.classList.toggle('primary',v==='fpv');pilotBtn.classList.toggle('primary',v==='pilot');crosshair.style.display=v==='fpv'?'block':'none';status.textContent=v==='pilot'?'場外飛手視角：我方球門後方':v==='fpv'?'FPV 第一人稱視角':'第三人稱追蹤視角';}
 const settingsToggle=document.getElementById('settingsToggle');
@@ -1126,7 +1150,8 @@ function setMode(m){ document.body.classList.toggle('training-mode',m==='academy
    touchedGuideSegments.clear();
    progressGuideVisuals.clear();
    guideSegments=[];
-   if(typeof taskBox!=='undefined')taskBox.style.display='none';
+   taskBox.hidden=true;
+   taskCountdown.hidden=true;
    if(typeof scorePanel!=='undefined')scorePanel.style.display='none';
    if(typeof refPanel!=='undefined')refPanel.style.display='none';
    [tabFree,tabMatch,tabAcademy].forEach(x=>x.classList.remove('active'));
@@ -1220,7 +1245,7 @@ document.getElementById('proSimulate').addEventListener('click',()=>{
 let resizeRAF=0;const ro=new ResizeObserver(()=>{cancelAnimationFrame(resizeRAF);resizeRAF=requestAnimationFrame(resize);});ro.observe(viewport); resize();
 viewport.addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.code==='Space'){e.preventDefault();player.armed=!player.armed;status.textContent=player.armed?'ARMED｜可以起飛':'DISARMED';} if(e.key.toLowerCase()==='r')resetPlayer(); if(e.key.toLowerCase()==='c'){const seq=['third','fpv','pilot'];setView(seq[(seq.indexOf(viewMode)+1)%3]);} });
 viewport.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; }); viewport.addEventListener('pointerdown',()=>viewport.focus());
-thirdBtn.addEventListener('click',()=>setView('third')); fpvBtn.addEventListener('click',()=>setView('fpv')); pilotBtn.addEventListener('click',()=>setView('pilot')); tabFree.addEventListener('click',()=>setMode('free')); tabMatch.addEventListener('click',()=>setMode('match')); tabAcademy.addEventListener('click',()=>setMode('academy')); document.querySelectorAll('[data-fmode]').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('[data-fmode]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); flightMode=b.dataset.fmode; status.textContent='Flight Mode：'+flightMode.toUpperCase(); })); resetBtn.addEventListener('click',resetPlayer); roleSelect.addEventListener('change',()=>{ player.role=roleSelect.value; setupAI(); status.textContent=player.role==='attacker'?'角色：進攻手｜得分後需自行回場':'角色：防守手｜AI 負責己方進攻'; }); startMatch.addEventListener('click',()=>{ player.role=roleSelect.value; player.retreatRequired=false; score={red:0,blue:0}; matchTime=180; matchRunning=true; player.armed=true; setupAI(); resetGoalPlaneTracking(); status.textContent=player.role==='attacker'?'MATCH START｜你是進攻手':'MATCH START｜你是防守手';setSettingsOpen(false);viewport.focus({preventScroll:true}); }); tier.addEventListener('change',()=>{ selectedLevel=tier.value==='bird'?1:tier.value==='sparrow'?11:21; renderLevels(); }); loadLevel.addEventListener('click',()=>{ activeLevel=LEVELS.find(l=>l[0]===selectedLevel); levelStart=performance.now(); lastAcademyTick=levelStart; resetLevel1State(); resetCourseState(); resetPlayer(); if(selectedLevel===1)player.group.position.set(0,.12,0); if(selectedLevel===2)player.group.position.set(-1.4,1.2,0); if(selectedLevel===3)player.group.position.set(0,1.2,0); if(selectedLevel===4)player.group.position.set(0,.12,0); if(selectedLevel===6)player.group.position.set(0,1.5,0); if(selectedLevel===7)player.group.position.set(0,1.2,0); if(selectedLevel===8)player.group.position.set(-1,1.2,0); if(selectedLevel===10)player.group.position.set(-1.4,1.2,0); if(selectedLevel===11||selectedLevel===12)player.group.position.set(.9,1.2,0); if(selectedLevel===17)player.group.position.set(-1.4,1.2,0); buildTrainingField(selectedLevel); taskBox.style.display='block'; taskTitle.textContent=`Level ${activeLevel[0]}｜${activeLevel[1]}`; taskText.textContent=activeLevel[2]; taskProgress.textContent=selectedLevel===1?'四個方向各需連續穩定 10 秒':selectedLevel===4?'依序進入高度提示區，每層穩定 5 秒':selectedLevel===6?'保持在黃色判定球內，先順時針再逆時針各 360°':selectedLevel===7?'依序通過 5 個提示節點：起點→右前→原點→左前→原點':selectedLevel===10?'穿門後必須碰觸黃色提示點，再 180° 轉向、返回、降落':(selectedLevel===11||selectedLevel===12)?'灰色＝未通過；綠色＝已通過，完成至少 92% 圓形航線':'提示點為大型半透明 3D 高度球；灰色虛線＝未通過、綠色＝已通過，20 cm 球形護框碰到線段即完成該段；航線型關卡需完成約 92%'; status.textContent=`LEVEL ${activeLevel[0]}｜${activeLevel[1]}`;setSettingsOpen(false);viewport.focus({preventScroll:true}); }); bounce.addEventListener('input',()=>bounceTxt.textContent=(+bounce.value).toFixed(2)); damage.addEventListener('input',()=>damageTxt.textContent=(+damage.value).toFixed(1)); accel.addEventListener('input',()=>accelTxt.textContent=(+accel.value).toFixed(1)); vertical.addEventListener('input',()=>verticalTxt.textContent=(+vertical.value).toFixed(1)); yawRate.addEventListener('input',()=>yawRateTxt.textContent=yawRate.value);
+thirdBtn.addEventListener('click',()=>setView('third')); fpvBtn.addEventListener('click',()=>setView('fpv')); pilotBtn.addEventListener('click',()=>setView('pilot')); tabFree.addEventListener('click',()=>setMode('free')); tabMatch.addEventListener('click',()=>setMode('match')); tabAcademy.addEventListener('click',()=>setMode('academy')); document.querySelectorAll('[data-fmode]').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('[data-fmode]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); flightMode=b.dataset.fmode; status.textContent='Flight Mode：'+flightMode.toUpperCase(); })); resetBtn.addEventListener('click',resetPlayer); roleSelect.addEventListener('change',()=>{ player.role=roleSelect.value; setupAI(); status.textContent=player.role==='attacker'?'角色：進攻手｜得分後需自行回場':'角色：防守手｜AI 負責己方進攻'; }); startMatch.addEventListener('click',()=>{ player.role=roleSelect.value; player.retreatRequired=false; score={red:0,blue:0}; matchTime=180; matchRunning=true; player.armed=true; setupAI(); resetGoalPlaneTracking(); status.textContent=player.role==='attacker'?'MATCH START｜你是進攻手':'MATCH START｜你是防守手';setSettingsOpen(false);viewport.focus({preventScroll:true}); }); tier.addEventListener('change',()=>{ selectedLevel=tier.value==='bird'?1:tier.value==='sparrow'?11:21; renderLevels(); }); loadLevel.addEventListener('click',()=>{ activeLevel=LEVELS.find(l=>l[0]===selectedLevel); levelStart=performance.now(); lastAcademyTick=levelStart; resetLevel1State(); resetCourseState(); resetPlayer(); if(selectedLevel===1)player.group.position.set(0,.12,0); if(selectedLevel===2)player.group.position.set(-1.4,1.2,0); if(selectedLevel===3)player.group.position.set(0,1.2,0); if(selectedLevel===4)player.group.position.set(0,.12,0); if(selectedLevel===6)player.group.position.set(0,1.5,0); if(selectedLevel===7)player.group.position.set(0,1.2,0); if(selectedLevel===8)player.group.position.set(-1,1.2,0); if(selectedLevel===10)player.group.position.set(-1.4,1.2,0); if(selectedLevel===11||selectedLevel===12)player.group.position.set(.9,1.2,0); if(selectedLevel===17)player.group.position.set(-1.4,1.2,0); buildTrainingField(selectedLevel); coursePassed=false;taskBox.hidden=false;taskCountdown.hidden=true; taskTitle.textContent=`Level ${activeLevel[0]}｜${activeLevel[1]}`; taskText.textContent=activeLevel[2]; writeText(taskProgress,selectedLevel===1?'四個方向各需連續穩定 10 秒':selectedLevel===4?'依序進入高度提示區，每層穩定 5 秒':selectedLevel===6?'保持在黃色判定球內，先順時針再逆時針各 360°':selectedLevel===7?'依序通過 5 個提示節點：起點→右前→原點→左前→原點':selectedLevel===10?'穿門後必須碰觸黃色提示點，再 180° 轉向、返回、降落':(selectedLevel===11||selectedLevel===12)?'灰色＝未通過；綠色＝已通過，完成至少 92% 圓形航線':'提示點為大型半透明 3D 高度球；灰色虛線＝未通過、綠色＝已通過，20 cm 球形護框碰到線段即完成該段；航線型關卡需完成約 92%'); status.textContent=`LEVEL ${activeLevel[0]}｜${activeLevel[1]}`;setSettingsOpen(false);viewport.focus({preventScroll:true}); }); bounce.addEventListener('input',()=>bounceTxt.textContent=(+bounce.value).toFixed(2)); damage.addEventListener('input',()=>damageTxt.textContent=(+damage.value).toFixed(1)); accel.addEventListener('input',()=>accelTxt.textContent=(+accel.value).toFixed(1)); vertical.addEventListener('input',()=>verticalTxt.textContent=(+vertical.value).toFixed(1)); yawRate.addEventListener('input',()=>yawRateTxt.textContent=yawRate.value);
  const aiDifficulty=document.getElementById('aiDifficulty');
  const aiDifficultyTxt=document.getElementById('aiDifficultyTxt');
  const aiDifficultyDesc=document.getElementById('aiDifficultyDesc');
