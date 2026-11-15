@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Drone Soccer Trainer V14.1 PRO WebGL 3D</title>
+<title>Drone Soccer Trainer V14.2 PRO WebGL 3D</title>
 <style>
 :root{--bg:#071019;--panel:#0d1721;--text:#f4f7fb;--muted:#9db0c3;--line:#284056;--red:#ff545c;--blue:#4da3ff;--gold:#ffd166;--green:#4ad886}
 *{box-sizing:border-box}
@@ -236,19 +236,39 @@ body.training-mode #academyPanel h3{margin-bottom:5px}
 body.training-mode #academyPanel select{flex:0 0 auto}
 body.training-mode #loadLevel{flex:0 0 auto}
 
+/* Arena controls */
+.header{padding:9px 12px;background:#101722;border:1px solid #2e3d50;border-radius:12px}
+.brand h1{font-size:clamp(16px,2vw,24px);font-weight:900;letter-spacing:.05em}
+.tabs{align-items:center}.tabs button.active{background:#bdf45a;color:#14210b;border-color:#bdf45a}
+.stagebar{background:#131d29}
+.arena-options{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.arena-options select{max-width:150px;background:#0e1722;color:#f4f7fb;border:1px solid #47617b;border-radius:7px;padding:5px}
+#proBtn{border-color:#95c842;color:#c9ff72}
+#proDialog{width:min(440px,calc(100% - 32px));padding:24px;border:1px solid #47617b;border-radius:14px;background:#111d2a;color:#f4f7fb}
+#proDialog::backdrop{background:#030810cc}
+#proDialog h2{margin:0 0 12px}
+#proDialog p,#proDialog li{color:#cedbea}
+#proDialog menu{padding:0;display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0}
+@media(max-width:1050px){
+  .header{flex-wrap:wrap}
+  .layout{display:flex;flex-direction:column}
+  .layout>.side{order:0}
+  #viewport,body.training-mode #viewport{height:clamp(300px,58vh,520px)}
+}
 </style>
 </head>
 <body>
 <div id="app">
   <div class="header">
     <div class="brand">
-      <h1>DRONE SOCCER TRAINER <span style="font-size:11px;color:#9db0c3">V14.1 PRO</span></h1>
+      <h1>DRONE SOCCER TRAINER <span style="font-size:11px;color:#9db0c3">V14.2 PRO</span></h1>
       
     </div>
     <div class="tabs">
       <button id="tabFree" class="active">自由模式</button>
       <button id="tabMatch">3v3 比賽</button>
-      <button id="tabAcademy">30級訓練</button>
+      <button id="tabAcademy">飛行學院</button>
+      <button id="proBtn" type="button">Pro 購買預覽</button>
     </div>
   </div>
 
@@ -260,6 +280,13 @@ body.training-mode #loadLevel{flex:0 0 auto}
           <button id="thirdBtn" class="btn primary">第三人稱</button>
           <button id="fpvBtn" class="btn">FPV 第一人稱</button>
           <button id="pilotBtn" class="btn">場外飛手</button>
+          <label class="arena-options small">畫質
+            <select id="quality">
+              <option value="performance">效能優先</option>
+              <option value="balanced">平衡</option>
+              <option value="high">高畫質</option>
+            </select>
+          </label>
         </div>
       </div>
       <div id="viewport" tabindex="0">
@@ -440,6 +467,17 @@ body.training-mode #loadLevel{flex:0 0 auto}
  </div>
 </div>
 
+<dialog id="proDialog" aria-labelledby="proTitle">
+  <h2 id="proTitle">Drone Soccer Pro</h2>
+  <p>一次買斷方案預覽</p>
+  <ul><li>解鎖第 11–30 級訓練</li><li>解鎖多人 3v3 房間</li></ul>
+  <p id="proStatus" role="status">這是模擬結帳，沒有付款或帳戶資料。測試資格在重新整理後清除。</p>
+  <menu>
+    <button id="proPreview" class="btn" type="button">試用鎖定畫面</button>
+    <button id="proSimulate" class="btn primary" type="button" hidden>模擬購買完成</button>
+    <form method="dialog"><button class="btn">關閉</button></form>
+  </menu>
+</dialog>
 <script type="module">
 
 window.addEventListener('error',e=>{const msg=e?.message||'';if(msg.includes('ResizeObserver loop completed with undelivered notifications')||msg.includes('ResizeObserver loop limit exceeded')){e.preventDefault?.();return;}const el=document.getElementById('webglState');const st=document.getElementById('status');if(el)el.textContent='初始化錯誤：'+(msg||'未知錯誤');if(st)st.textContent='程式初始化失敗，請重新載入';});
@@ -455,12 +493,21 @@ const hud=document.getElementById('hud');
 const crosshair=document.getElementById('crosshair');
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x08131d);
-scene.fog=new THREE.Fog(0x08131d,8,18);
-const renderer=new THREE.WebGLRenderer({antialias:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.shadowMap.enabled=true; renderer.outputColorSpace=THREE.SRGBColorSpace;
+scene.fog=new THREE.Fog(0x08131d,10,24);
+let renderer;
+try {
+  renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'default'});
+} catch (err) {
+  const message='無法啟動 WebGL 2。請啟用瀏覽器圖形加速或換用支援 WebGL 2 的裝置。';
+  loading.textContent=message;
+  document.getElementById('webglState').textContent=message;
+  console.error(err);
+}
+if(renderer){
+renderer.outputColorSpace=THREE.SRGBColorSpace;
 viewport.prepend(renderer.domElement);
-loading.remove(); hud.style.display='block'; webglDot.classList.add('ok'); webglState.textContent='WebGL 3D 已啟動';
+const webglDot=document.getElementById('webglDot');
+const webglState=document.getElementById('webglState');
 const camera=new THREE.PerspectiveCamera(70,16/9,.02,100); const clock3=new THREE.Clock();
 scene.add(new THREE.HemisphereLight(0xcfe8ff,0x16200f,1.7));
 const sun=new THREE.DirectionalLight(0xffffff,2.2); sun.position.set(4,8,3); sun.castShadow=true; scene.add(sun);
@@ -470,12 +517,53 @@ floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
 const centerLine=new THREE.Mesh(new THREE.BoxGeometry(.02,.01,ARENA.W), new THREE.MeshBasicMaterial({color:0x9cb4c7,transparent:true,opacity:.55})); centerLine.position.y=.006; scene.add(centerLine);
 const cageMat=new THREE.LineBasicMaterial({color:0xb7cad8,transparent:true,opacity:.35});const cageObjects=[];
 function edge(a,b){ const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]); const l=new THREE.Line(g,cageMat);scene.add(l);cageObjects.push(l);}
-function setArenaVisible(v){floor.visible=v;centerLine.visible=v;cageObjects.forEach(o=>o.visible=v)}
+function setArenaVisible(v){floor.visible=v;centerLine.visible=v;arenaDecor.visible=v;cageObjects.forEach(o=>o.visible=v)}
 const X=ARENA.L/2,Z=ARENA.W/2,Y=ARENA.H;
 [[[-X,0,-Z],[X,0,-Z]],[[-X,0,Z],[X,0,Z]],[[-X,Y,-Z],[X,Y,-Z]],[[-X,Y,Z],[X,Y,Z]],[[-X,0,-Z],[-X,0,Z]],[[X,0,-Z],[X,0,Z]],[[-X,Y,-Z],[-X,Y,Z]],[[X,Y,-Z],[X,Y,Z]],[[-X,0,-Z],[-X,Y,-Z]],[[X,0,-Z],[X,Y,-Z]],[[-X,0,Z],[-X,Y,Z]],[[X,0,Z],[X,Y,Z]]].forEach(e=>edge(e[0],e[1]));
 for(let ix=-3;ix<=3;ix+=.3){edge([ix,0,-1.5],[ix,4,-1.5]);edge([ix,0,1.5],[ix,4,1.5])}
 function makeGoal(side){ const group=new THREE.Group(); const tor=new THREE.Mesh(new THREE.TorusGeometry(GOAL_R,GOAL_TUBE,12,64), new THREE.MeshStandardMaterial({color:0xffd166,emissive:0x5b3b00,roughness:.45})); tor.rotation.y=Math.PI/2; tor.castShadow=true; group.add(tor); const gx=side==='red'?-2:2; group.position.set(gx,GOAL_Y,0); scene.add(group); return {group,center:new THREE.Vector3(gx,GOAL_Y,0),side}; }
 const goals=[makeGoal('red'),makeGoal('blue')];
+
+// Visual geometry stays outside the collision model.
+const arenaDecor=new THREE.Group();
+scene.add(arenaDecor);
+const teamLights={
+  red:new THREE.MeshBasicMaterial({color:0xff465d}),
+  blue:new THREE.MeshBasicMaterial({color:0x37bdff})
+};
+const steel=new THREE.MeshStandardMaterial({color:0x263746,roughness:.75});
+const wall=new THREE.MeshStandardMaterial({color:0x131d28,roughness:.92});
+function arenaBox(size,position,material){
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),material);
+  mesh.position.set(...position);
+  arenaDecor.add(mesh);
+}
+arenaBox([13,.06,10],[0,-.05,0],wall);
+for(const z of [-3.7,3.7]){
+  arenaBox([12,3.4,.1],[0,1.7,z],wall);
+  arenaBox([12,.08,.14],[0,2.75,z],steel);
+  for(const x of [-4,-2,0,2,4]){
+    arenaBox([.1,3.4,.18],[x,1.7,z],steel);
+    arenaBox([1.62,.026,.16],[x,2.75,z*.985],x<0?teamLights.red:teamLights.blue);
+  }
+}
+for(const [team,sign] of [['red',-1],['blue',1]]){
+  arenaBox([.06,.012,2.9],[sign*2.86,.015,0],teamLights[team]);
+  for(const z of [-1.44,1.44]){
+    arenaBox([2.8,.012,.035],[sign*1.43,.015,z],teamLights[team]);
+    arenaBox([.035,.035,.035],[sign*2.86,2.96,z],teamLights[team]);
+  }
+  const ring=goals[team==='red'?0:1].group.children[0];
+  ring.material.color.copy(teamLights[team].color);
+  ring.material.emissive.copy(teamLights[team].color).multiplyScalar(.4);
+}
+const midfieldCircle=new THREE.Mesh(
+  new THREE.RingGeometry(.5,.512,48),
+  new THREE.MeshBasicMaterial({color:0x88a9bd})
+);
+midfieldCircle.rotation.x=-Math.PI/2;
+midfieldCircle.position.y=.012;
+arenaDecor.add(midfieldCircle);
 function makeDrone(color=0xff545c){ const group=new THREE.Group(); const cageMesh=new THREE.Mesh(new THREE.SphereGeometry(DR,20,14), new THREE.MeshStandardMaterial({color,wireframe:true,roughness:.4,metalness:.1,emissive:new THREE.Color(color).multiplyScalar(.12)})); group.add(cageMesh); const core=new THREE.Mesh(new THREE.BoxGeometry(.065,.025,.065), new THREE.MeshStandardMaterial({color:0x222a31,metalness:.5,roughness:.35})); group.add(core); const armMat=new THREE.MeshStandardMaterial({color:0xdde8ef,metalness:.3,roughness:.4}); [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>{ const arm=new THREE.Mesh(new THREE.BoxGeometry(.055,.008,.009),armMat); arm.position.set(sx*.028,0,sz*.028); arm.rotation.y=(sx===sz?Math.PI/4:-Math.PI/4); group.add(arm); const m=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.01,12),new THREE.MeshStandardMaterial({color:0x111820})); m.rotation.x=Math.PI/2; m.position.set(sx*.045,.005,sz*.045); group.add(m); }); const nose=new THREE.Mesh(new THREE.ConeGeometry(.012,.04,10), new THREE.MeshStandardMaterial({color:0xffffff})); nose.rotation.z=-Math.PI/2; nose.position.x=.07; group.add(nose); scene.add(group); return {group,cageMesh,vel:new THREE.Vector3(),yaw:0,health:100,hits:0,armed:false,team:'red',role:'attacker',radius:DR,retreatRequired:false,prevScoreX:group.position.x,illegalGoalCooldown:0}; }
 
 function updateTeamAppearance(d){
@@ -934,11 +1022,58 @@ function setMode(m){ document.body.classList.toggle('training-mode',m==='academy
    status.textContent='模式切換錯誤：'+(err?.message||String(err));
  }
 }
-function resize(){ const r=viewport.getBoundingClientRect(); renderer.setSize(r.width,r.height,false); camera.aspect=r.width/r.height; camera.updateProjectionMatrix(); }
+function resize(){
+  const {width,height}=viewport.getBoundingClientRect();
+  if(width<1||height<1)return;
+  renderer.setSize(Math.round(width),Math.round(height),false);
+  camera.aspect=width/height;
+  camera.updateProjectionMatrix();
+}
+const quality=document.getElementById('quality');
+function applyQuality(){
+  const pixelRatio={performance:.75,balanced:1,high:2}[quality.value];
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,pixelRatio));
+  renderer.shadowMap.enabled=quality.value==='high';
+  resize();
+}
+quality.value=window.devicePixelRatio>1?'balanced':'performance';
+quality.addEventListener('change',applyQuality);
+applyQuality();
+const proDialog=document.getElementById('proDialog');
+const proPreview=document.getElementById('proPreview');
+const proSimulate=document.getElementById('proSimulate');
+const proStatus=document.getElementById('proStatus');
+let previewEnabled=false;
+let previewPurchased=false;
+function canAccessPro(){
+  if(!previewEnabled||previewPurchased)return true;
+  proStatus.textContent='這個功能屬於 Pro。可模擬一次買斷以測試解鎖，過程不會扣款。';
+  if(!proDialog.open)proDialog.showModal();
+  return false;
+}
+document.getElementById('proBtn').addEventListener('click',()=>proDialog.showModal());
+proPreview.addEventListener('click',()=>{
+  previewEnabled=!previewEnabled;
+  previewPurchased=false;
+  proPreview.textContent=previewEnabled?'離開方案預覽':'試用鎖定畫面';
+  proSimulate.hidden=!previewEnabled;
+  proSimulate.disabled=false;
+  if(previewEnabled){
+    if(activeLevel?.[0]>10)setMode('academy');
+    if(tier.value!=='bird'){tier.value='bird';selectedLevel=1;renderLevels();}
+  }
+  proStatus.textContent=previewEnabled?'預覽已啟用：可試玩自由飛行、AI 對戰與第 1–10 級訓練。':'已離開方案預覽。';
+  proDialog.close();
+});
+proSimulate.addEventListener('click',()=>{
+  previewPurchased=true;
+  proSimulate.disabled=true;
+  proStatus.textContent='模擬購買完成。進階訓練和多人房間已解鎖。';
+});
 let resizeRAF=0;const ro=new ResizeObserver(()=>{cancelAnimationFrame(resizeRAF);resizeRAF=requestAnimationFrame(resize);});ro.observe(viewport); resize();
 viewport.addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.code==='Space'){e.preventDefault();player.armed=!player.armed;status.textContent=player.armed?'ARMED｜可以起飛':'DISARMED';} if(e.key.toLowerCase()==='r')resetPlayer(); if(e.key.toLowerCase()==='c'){const seq=['third','fpv','pilot'];setView(seq[(seq.indexOf(viewMode)+1)%3]);} });
 viewport.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; }); viewport.addEventListener('pointerdown',()=>viewport.focus());
-thirdBtn.addEventListener('click',()=>setView('third')); fpvBtn.addEventListener('click',()=>setView('fpv')); pilotBtn.addEventListener('click',()=>setView('pilot')); tabFree.addEventListener('click',()=>setMode('free')); tabMatch.addEventListener('click',()=>setMode('match')); tabAcademy.addEventListener('click',()=>setMode('academy')); document.querySelectorAll('[data-fmode]').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('[data-fmode]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); flightMode=b.dataset.fmode; status.textContent='Flight Mode：'+flightMode.toUpperCase(); })); resetBtn.addEventListener('click',resetPlayer); roleSelect.addEventListener('change',()=>{ player.role=roleSelect.value; setupAI(); status.textContent=player.role==='attacker'?'角色：進攻手｜得分後需自行回場':'角色：防守手｜AI 負責己方進攻'; }); startMatch.addEventListener('click',()=>{ player.role=roleSelect.value; player.retreatRequired=false; score={red:0,blue:0}; matchTime=180; matchRunning=true; player.armed=true; setupAI(); resetGoalPlaneTracking(); status.textContent=player.role==='attacker'?'MATCH START｜你是進攻手':'MATCH START｜你是防守手'; }); tier.addEventListener('change',()=>{ selectedLevel=tier.value==='bird'?1:tier.value==='sparrow'?11:21; renderLevels(); }); loadLevel.addEventListener('click',()=>{ activeLevel=LEVELS.find(l=>l[0]===selectedLevel); levelStart=performance.now(); lastAcademyTick=levelStart; resetLevel1State(); resetCourseState(); resetPlayer(); if(selectedLevel===1)player.group.position.set(0,.12,0); if(selectedLevel===2)player.group.position.set(-1.4,1.2,0); if(selectedLevel===3)player.group.position.set(0,1.2,0); if(selectedLevel===4)player.group.position.set(0,.12,0); if(selectedLevel===6)player.group.position.set(0,1.5,0); if(selectedLevel===7)player.group.position.set(0,1.2,0); if(selectedLevel===8)player.group.position.set(-1,1.2,0); if(selectedLevel===10)player.group.position.set(-1.4,1.2,0); if(selectedLevel===11||selectedLevel===12)player.group.position.set(.9,1.2,0); if(selectedLevel===17)player.group.position.set(-1.4,1.2,0); buildTrainingField(selectedLevel); taskBox.style.display='block'; taskTitle.textContent=`Level ${activeLevel[0]}｜${activeLevel[1]}`; taskText.textContent=activeLevel[2]; taskProgress.textContent=selectedLevel===1?'四個方向各需連續穩定 10 秒':selectedLevel===4?'依序進入高度提示區，每層穩定 5 秒':selectedLevel===6?'保持在黃色判定球內，先順時針再逆時針各 360°':selectedLevel===7?'依序通過 5 個提示節點：起點→右前→原點→左前→原點':selectedLevel===10?'穿門後必須碰觸黃色提示點，再 180° 轉向、返回、降落':(selectedLevel===11||selectedLevel===12)?'灰色＝未通過；綠色＝已通過，完成至少 92% 圓形航線':'提示點為大型半透明 3D 高度球；灰色虛線＝未通過、綠色＝已通過，20 cm 球形護框碰到線段即完成該段；航線型關卡需完成約 92%'; status.textContent=`LEVEL ${activeLevel[0]}｜${activeLevel[1]}`; }); bounce.addEventListener('input',()=>bounceTxt.textContent=(+bounce.value).toFixed(2)); damage.addEventListener('input',()=>damageTxt.textContent=(+damage.value).toFixed(1)); accel.addEventListener('input',()=>accelTxt.textContent=(+accel.value).toFixed(1)); vertical.addEventListener('input',()=>verticalTxt.textContent=(+vertical.value).toFixed(1)); yawRate.addEventListener('input',()=>yawRateTxt.textContent=yawRate.value);
+thirdBtn.addEventListener('click',()=>setView('third')); fpvBtn.addEventListener('click',()=>setView('fpv')); pilotBtn.addEventListener('click',()=>setView('pilot')); tabFree.addEventListener('click',()=>setMode('free')); tabMatch.addEventListener('click',()=>setMode('match')); tabAcademy.addEventListener('click',()=>setMode('academy')); document.querySelectorAll('[data-fmode]').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('[data-fmode]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); flightMode=b.dataset.fmode; status.textContent='Flight Mode：'+flightMode.toUpperCase(); })); resetBtn.addEventListener('click',resetPlayer); roleSelect.addEventListener('change',()=>{ player.role=roleSelect.value; setupAI(); status.textContent=player.role==='attacker'?'角色：進攻手｜得分後需自行回場':'角色：防守手｜AI 負責己方進攻'; }); startMatch.addEventListener('click',()=>{ player.role=roleSelect.value; player.retreatRequired=false; score={red:0,blue:0}; matchTime=180; matchRunning=true; player.armed=true; setupAI(); resetGoalPlaneTracking(); status.textContent=player.role==='attacker'?'MATCH START｜你是進攻手':'MATCH START｜你是防守手'; }); tier.addEventListener('change',()=>{ if(tier.value!=='bird'&&!canAccessPro()){tier.value='bird';selectedLevel=1;renderLevels();return;} selectedLevel=tier.value==='bird'?1:tier.value==='sparrow'?11:21; renderLevels(); }); loadLevel.addEventListener('click',()=>{ if(selectedLevel>10&&!canAccessPro())return; activeLevel=LEVELS.find(l=>l[0]===selectedLevel); levelStart=performance.now(); lastAcademyTick=levelStart; resetLevel1State(); resetCourseState(); resetPlayer(); if(selectedLevel===1)player.group.position.set(0,.12,0); if(selectedLevel===2)player.group.position.set(-1.4,1.2,0); if(selectedLevel===3)player.group.position.set(0,1.2,0); if(selectedLevel===4)player.group.position.set(0,.12,0); if(selectedLevel===6)player.group.position.set(0,1.5,0); if(selectedLevel===7)player.group.position.set(0,1.2,0); if(selectedLevel===8)player.group.position.set(-1,1.2,0); if(selectedLevel===10)player.group.position.set(-1.4,1.2,0); if(selectedLevel===11||selectedLevel===12)player.group.position.set(.9,1.2,0); if(selectedLevel===17)player.group.position.set(-1.4,1.2,0); buildTrainingField(selectedLevel); taskBox.style.display='block'; taskTitle.textContent=`Level ${activeLevel[0]}｜${activeLevel[1]}`; taskText.textContent=activeLevel[2]; taskProgress.textContent=selectedLevel===1?'四個方向各需連續穩定 10 秒':selectedLevel===4?'依序進入高度提示區，每層穩定 5 秒':selectedLevel===6?'保持在黃色判定球內，先順時針再逆時針各 360°':selectedLevel===7?'依序通過 5 個提示節點：起點→右前→原點→左前→原點':selectedLevel===10?'穿門後必須碰觸黃色提示點，再 180° 轉向、返回、降落':(selectedLevel===11||selectedLevel===12)?'灰色＝未通過；綠色＝已通過，完成至少 92% 圓形航線':'提示點為大型半透明 3D 高度球；灰色虛線＝未通過、綠色＝已通過，20 cm 球形護框碰到線段即完成該段；航線型關卡需完成約 92%'; status.textContent=`LEVEL ${activeLevel[0]}｜${activeLevel[1]}`; }); bounce.addEventListener('input',()=>bounceTxt.textContent=(+bounce.value).toFixed(2)); damage.addEventListener('input',()=>damageTxt.textContent=(+damage.value).toFixed(1)); accel.addEventListener('input',()=>accelTxt.textContent=(+accel.value).toFixed(1)); vertical.addEventListener('input',()=>verticalTxt.textContent=(+vertical.value).toFixed(1)); yawRate.addEventListener('input',()=>yawRateTxt.textContent=yawRate.value);
  const aiDifficulty=document.getElementById('aiDifficulty');
  const aiDifficultyTxt=document.getElementById('aiDifficultyTxt');
  const aiDifficultyDesc=document.getElementById('aiDifficultyDesc');
@@ -1366,6 +1501,7 @@ function teardownNet(){
  netPeer=null;
 }
 async function hostMultiplayer(){
+ if(!canAccessPro())return;
  if(!(await ensurePeer()))return;
  const code=makeRoomCode();roomCode.textContent=code;roomCodeInput.value=code;isHost=true;localReady=false;
  teardownNet(); isHost=true;
@@ -1377,6 +1513,7 @@ async function hostMultiplayer(){
  netPeer.on('error',e=>{hostOnline=false;netStatus.textContent=describePeerError(e)});
 }
 async function joinMultiplayer(){
+ if(!canAccessPro())return;
  if(!(await ensurePeer()))return;
  const code=roomCodeInput.value.trim().toUpperCase();if(!code){netStatus.textContent='請輸入房間碼';return}
  isHost=false;localReady=false;teardownNet();isHost=false;
@@ -1456,7 +1593,7 @@ function netTick(dt){
   }
  if(series.phase==='rest'){series.restLeft=Math.max(0,series.restLeft-dt);showRestOverlay();if(restCountdown)restCountdown.textContent=fmtRest(series.restLeft);seriesState.textContent=`REST｜下一局 ${Math.ceil(series.restLeft)} 秒｜紅 ${series.wins.red}:${series.wins.blue} 藍`;status.textContent=`中場休息｜下一局 ${fmtRest(series.restLeft)}`;if(isHost){restBroadcastAcc+=dt;if(restBroadcastAcc>=1){restBroadcastAcc=0;broadcast({type:'restTick',restLeft:series.restLeft});}if(series.restLeft<=0)startNextRoundHost();}}
 }
-openMulti.addEventListener('click',()=>{multiModal.style.display='flex';renderPlayerList();updateRoleAvailability();});closeMulti.addEventListener('click',()=>multiModal.style.display='none');hostRoom.addEventListener('click',hostMultiplayer);joinRoom.addEventListener('click',joinMultiplayer);
+openMulti.addEventListener('click',()=>{if(!canAccessPro())return;multiModal.style.display='flex';renderPlayerList();updateRoleAvailability();});closeMulti.addEventListener('click',()=>multiModal.style.display='none');hostRoom.addEventListener('click',hostMultiplayer);joinRoom.addEventListener('click',joinMultiplayer);
 readyBtn.addEventListener('click',()=>{if(!updateRoleAvailability()){netStatus.textContent='⛔ 目前角色席位已被占用，請先改選可用角色。';return;}localReady=!localReady;readyBtn.textContent=localReady?'取消準備':'我已準備';updateProfileNet()});
 [playerName,netTeam,netRole].forEach(el=>el.addEventListener('change',updateProfileNet));[seriesBestOf,roundMinutes,restMinutes].forEach(el=>el.addEventListener('change',()=>{if(isHost){seriesConfigFromUI();broadcast({type:'seriesConfig',series:{...series,wins:{...series.wins},history:[...series.history]}});updateSeriesUI()}}));
 startSeries.addEventListener('click',startSeriesHost);closeResult.addEventListener('click',()=>seriesOverlay.style.display='none');
@@ -1547,6 +1684,12 @@ function animate(){
    updateHUD(); 
    updateControllerUI(); 
    renderer.render(scene,camera);
+    if(loading.isConnected){
+      loading.remove();
+      hud.style.display='block';
+      webglDot.classList.add('ok');
+      webglState.textContent='WebGL 3D 已啟動';
+    }
  }catch(err){ 
    console.error('Render loop error:',err); 
    status.textContent='執行錯誤：'+(err?.message||String(err)); 
@@ -1554,6 +1697,7 @@ function animate(){
  requestAnimationFrame(animate);
 }
 animate();
+}
 
 </script>
 
