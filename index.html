@@ -469,13 +469,11 @@ body.training-mode #loadLevel{flex:0 0 auto}
 
 <dialog id="proDialog" aria-labelledby="proTitle">
   <h2 id="proTitle">Drone Soccer Pro</h2>
-  <p>一次買斷方案預覽</p>
-  <ul><li>解鎖第 11–30 級訓練</li><li>解鎖多人 3v3 房間</li></ul>
-  <p id="proStatus" role="status">這是模擬結帳，沒有付款或帳戶資料。測試資格在重新整理後清除。</p>
+  <p>一次買斷解鎖整款遊戲：自由飛行、30 級訓練、AI 對戰和多人房間。</p>
+  <p>這是測試結帳，不會扣款，也不會收集付款資料。重新整理會重置測試資格。</p>
   <menu>
-    <button id="proPreview" class="btn" type="button">試用鎖定畫面</button>
-    <button id="proSimulate" class="btn primary" type="button" hidden>模擬購買完成</button>
-    <form method="dialog"><button class="btn">關閉</button></form>
+    <button id="proSimulate" class="btn primary" type="button">模擬購買完成</button>
+    <button id="proCancel" class="btn" type="button">取消並離開測試</button>
   </menu>
 </dialog>
 <script type="module">
@@ -1040,40 +1038,34 @@ quality.value=window.devicePixelRatio>1?'balanced':'performance';
 quality.addEventListener('change',applyQuality);
 applyQuality();
 const proDialog=document.getElementById('proDialog');
-const proPreview=document.getElementById('proPreview');
-const proSimulate=document.getElementById('proSimulate');
-const proStatus=document.getElementById('proStatus');
-let previewEnabled=false;
-let previewPurchased=false;
-function canAccessPro(){
-  if(!previewEnabled||previewPurchased)return true;
-  proStatus.textContent='這個功能屬於 Pro。可模擬一次買斷以測試解鎖，過程不會扣款。';
-  if(!proDialog.open)proDialog.showModal();
-  return false;
+const appShell=document.getElementById('app');
+let checkoutLocked=new URLSearchParams(window.location.search).get('checkout')==='test';
+const proButton=document.getElementById('proBtn');
+function setCheckoutPreview(on){
+  const url=new URL(window.location.href);
+  if(on)url.searchParams.set('checkout','test');
+  else url.searchParams.delete('checkout');
+  window.location.assign(url);
 }
-document.getElementById('proBtn').addEventListener('click',()=>proDialog.showModal());
-proPreview.addEventListener('click',()=>{
-  previewEnabled=!previewEnabled;
-  previewPurchased=false;
-  proPreview.textContent=previewEnabled?'離開方案預覽':'試用鎖定畫面';
-  proSimulate.hidden=!previewEnabled;
-  proSimulate.disabled=false;
-  if(previewEnabled){
-    if(activeLevel?.[0]>10)setMode('academy');
-    if(tier.value!=='bird'){tier.value='bird';selectedLevel=1;renderLevels();}
-  }
-  proStatus.textContent=previewEnabled?'預覽已啟用：可試玩自由飛行、AI 對戰與第 1–10 級訓練。':'已離開方案預覽。';
-  proDialog.close();
+proButton.addEventListener('click',()=>setCheckoutPreview(true));
+proDialog.addEventListener('cancel',event=>{
+  event.preventDefault();
+  setCheckoutPreview(false);
 });
-proSimulate.addEventListener('click',()=>{
-  previewPurchased=true;
-  proSimulate.disabled=true;
-  proStatus.textContent='模擬購買完成。進階訓練和多人房間已解鎖。';
+document.getElementById('proCancel').addEventListener('click',()=>setCheckoutPreview(false));
+document.getElementById('proSimulate').addEventListener('click',()=>{
+  if(!checkoutLocked)return;
+  checkoutLocked=false;
+  appShell.inert=false;
+  proDialog.close();
+  status.textContent='模擬購買完成，所有遊戲模式已解鎖。';
+  proButton.textContent='重新測試購買';
+  viewport.focus({preventScroll:true});
 });
 let resizeRAF=0;const ro=new ResizeObserver(()=>{cancelAnimationFrame(resizeRAF);resizeRAF=requestAnimationFrame(resize);});ro.observe(viewport); resize();
 viewport.addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.code==='Space'){e.preventDefault();player.armed=!player.armed;status.textContent=player.armed?'ARMED｜可以起飛':'DISARMED';} if(e.key.toLowerCase()==='r')resetPlayer(); if(e.key.toLowerCase()==='c'){const seq=['third','fpv','pilot'];setView(seq[(seq.indexOf(viewMode)+1)%3]);} });
 viewport.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; }); viewport.addEventListener('pointerdown',()=>viewport.focus());
-thirdBtn.addEventListener('click',()=>setView('third')); fpvBtn.addEventListener('click',()=>setView('fpv')); pilotBtn.addEventListener('click',()=>setView('pilot')); tabFree.addEventListener('click',()=>setMode('free')); tabMatch.addEventListener('click',()=>setMode('match')); tabAcademy.addEventListener('click',()=>setMode('academy')); document.querySelectorAll('[data-fmode]').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('[data-fmode]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); flightMode=b.dataset.fmode; status.textContent='Flight Mode：'+flightMode.toUpperCase(); })); resetBtn.addEventListener('click',resetPlayer); roleSelect.addEventListener('change',()=>{ player.role=roleSelect.value; setupAI(); status.textContent=player.role==='attacker'?'角色：進攻手｜得分後需自行回場':'角色：防守手｜AI 負責己方進攻'; }); startMatch.addEventListener('click',()=>{ player.role=roleSelect.value; player.retreatRequired=false; score={red:0,blue:0}; matchTime=180; matchRunning=true; player.armed=true; setupAI(); resetGoalPlaneTracking(); status.textContent=player.role==='attacker'?'MATCH START｜你是進攻手':'MATCH START｜你是防守手'; }); tier.addEventListener('change',()=>{ if(tier.value!=='bird'&&!canAccessPro()){tier.value='bird';selectedLevel=1;renderLevels();return;} selectedLevel=tier.value==='bird'?1:tier.value==='sparrow'?11:21; renderLevels(); }); loadLevel.addEventListener('click',()=>{ if(selectedLevel>10&&!canAccessPro())return; activeLevel=LEVELS.find(l=>l[0]===selectedLevel); levelStart=performance.now(); lastAcademyTick=levelStart; resetLevel1State(); resetCourseState(); resetPlayer(); if(selectedLevel===1)player.group.position.set(0,.12,0); if(selectedLevel===2)player.group.position.set(-1.4,1.2,0); if(selectedLevel===3)player.group.position.set(0,1.2,0); if(selectedLevel===4)player.group.position.set(0,.12,0); if(selectedLevel===6)player.group.position.set(0,1.5,0); if(selectedLevel===7)player.group.position.set(0,1.2,0); if(selectedLevel===8)player.group.position.set(-1,1.2,0); if(selectedLevel===10)player.group.position.set(-1.4,1.2,0); if(selectedLevel===11||selectedLevel===12)player.group.position.set(.9,1.2,0); if(selectedLevel===17)player.group.position.set(-1.4,1.2,0); buildTrainingField(selectedLevel); taskBox.style.display='block'; taskTitle.textContent=`Level ${activeLevel[0]}｜${activeLevel[1]}`; taskText.textContent=activeLevel[2]; taskProgress.textContent=selectedLevel===1?'四個方向各需連續穩定 10 秒':selectedLevel===4?'依序進入高度提示區，每層穩定 5 秒':selectedLevel===6?'保持在黃色判定球內，先順時針再逆時針各 360°':selectedLevel===7?'依序通過 5 個提示節點：起點→右前→原點→左前→原點':selectedLevel===10?'穿門後必須碰觸黃色提示點，再 180° 轉向、返回、降落':(selectedLevel===11||selectedLevel===12)?'灰色＝未通過；綠色＝已通過，完成至少 92% 圓形航線':'提示點為大型半透明 3D 高度球；灰色虛線＝未通過、綠色＝已通過，20 cm 球形護框碰到線段即完成該段；航線型關卡需完成約 92%'; status.textContent=`LEVEL ${activeLevel[0]}｜${activeLevel[1]}`; }); bounce.addEventListener('input',()=>bounceTxt.textContent=(+bounce.value).toFixed(2)); damage.addEventListener('input',()=>damageTxt.textContent=(+damage.value).toFixed(1)); accel.addEventListener('input',()=>accelTxt.textContent=(+accel.value).toFixed(1)); vertical.addEventListener('input',()=>verticalTxt.textContent=(+vertical.value).toFixed(1)); yawRate.addEventListener('input',()=>yawRateTxt.textContent=yawRate.value);
+thirdBtn.addEventListener('click',()=>setView('third')); fpvBtn.addEventListener('click',()=>setView('fpv')); pilotBtn.addEventListener('click',()=>setView('pilot')); tabFree.addEventListener('click',()=>setMode('free')); tabMatch.addEventListener('click',()=>setMode('match')); tabAcademy.addEventListener('click',()=>setMode('academy')); document.querySelectorAll('[data-fmode]').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('[data-fmode]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); flightMode=b.dataset.fmode; status.textContent='Flight Mode：'+flightMode.toUpperCase(); })); resetBtn.addEventListener('click',resetPlayer); roleSelect.addEventListener('change',()=>{ player.role=roleSelect.value; setupAI(); status.textContent=player.role==='attacker'?'角色：進攻手｜得分後需自行回場':'角色：防守手｜AI 負責己方進攻'; }); startMatch.addEventListener('click',()=>{ player.role=roleSelect.value; player.retreatRequired=false; score={red:0,blue:0}; matchTime=180; matchRunning=true; player.armed=true; setupAI(); resetGoalPlaneTracking(); status.textContent=player.role==='attacker'?'MATCH START｜你是進攻手':'MATCH START｜你是防守手'; }); tier.addEventListener('change',()=>{ selectedLevel=tier.value==='bird'?1:tier.value==='sparrow'?11:21; renderLevels(); }); loadLevel.addEventListener('click',()=>{ activeLevel=LEVELS.find(l=>l[0]===selectedLevel); levelStart=performance.now(); lastAcademyTick=levelStart; resetLevel1State(); resetCourseState(); resetPlayer(); if(selectedLevel===1)player.group.position.set(0,.12,0); if(selectedLevel===2)player.group.position.set(-1.4,1.2,0); if(selectedLevel===3)player.group.position.set(0,1.2,0); if(selectedLevel===4)player.group.position.set(0,.12,0); if(selectedLevel===6)player.group.position.set(0,1.5,0); if(selectedLevel===7)player.group.position.set(0,1.2,0); if(selectedLevel===8)player.group.position.set(-1,1.2,0); if(selectedLevel===10)player.group.position.set(-1.4,1.2,0); if(selectedLevel===11||selectedLevel===12)player.group.position.set(.9,1.2,0); if(selectedLevel===17)player.group.position.set(-1.4,1.2,0); buildTrainingField(selectedLevel); taskBox.style.display='block'; taskTitle.textContent=`Level ${activeLevel[0]}｜${activeLevel[1]}`; taskText.textContent=activeLevel[2]; taskProgress.textContent=selectedLevel===1?'四個方向各需連續穩定 10 秒':selectedLevel===4?'依序進入高度提示區，每層穩定 5 秒':selectedLevel===6?'保持在黃色判定球內，先順時針再逆時針各 360°':selectedLevel===7?'依序通過 5 個提示節點：起點→右前→原點→左前→原點':selectedLevel===10?'穿門後必須碰觸黃色提示點，再 180° 轉向、返回、降落':(selectedLevel===11||selectedLevel===12)?'灰色＝未通過；綠色＝已通過，完成至少 92% 圓形航線':'提示點為大型半透明 3D 高度球；灰色虛線＝未通過、綠色＝已通過，20 cm 球形護框碰到線段即完成該段；航線型關卡需完成約 92%'; status.textContent=`LEVEL ${activeLevel[0]}｜${activeLevel[1]}`; }); bounce.addEventListener('input',()=>bounceTxt.textContent=(+bounce.value).toFixed(2)); damage.addEventListener('input',()=>damageTxt.textContent=(+damage.value).toFixed(1)); accel.addEventListener('input',()=>accelTxt.textContent=(+accel.value).toFixed(1)); vertical.addEventListener('input',()=>verticalTxt.textContent=(+vertical.value).toFixed(1)); yawRate.addEventListener('input',()=>yawRateTxt.textContent=yawRate.value);
  const aiDifficulty=document.getElementById('aiDifficulty');
  const aiDifficultyTxt=document.getElementById('aiDifficultyTxt');
  const aiDifficultyDesc=document.getElementById('aiDifficultyDesc');
@@ -1501,7 +1493,7 @@ function teardownNet(){
  netPeer=null;
 }
 async function hostMultiplayer(){
- if(!canAccessPro())return;
+ 
  if(!(await ensurePeer()))return;
  const code=makeRoomCode();roomCode.textContent=code;roomCodeInput.value=code;isHost=true;localReady=false;
  teardownNet(); isHost=true;
@@ -1513,7 +1505,7 @@ async function hostMultiplayer(){
  netPeer.on('error',e=>{hostOnline=false;netStatus.textContent=describePeerError(e)});
 }
 async function joinMultiplayer(){
- if(!canAccessPro())return;
+ 
  if(!(await ensurePeer()))return;
  const code=roomCodeInput.value.trim().toUpperCase();if(!code){netStatus.textContent='請輸入房間碼';return}
  isHost=false;localReady=false;teardownNet();isHost=false;
@@ -1593,12 +1585,19 @@ function netTick(dt){
   }
  if(series.phase==='rest'){series.restLeft=Math.max(0,series.restLeft-dt);showRestOverlay();if(restCountdown)restCountdown.textContent=fmtRest(series.restLeft);seriesState.textContent=`REST｜下一局 ${Math.ceil(series.restLeft)} 秒｜紅 ${series.wins.red}:${series.wins.blue} 藍`;status.textContent=`中場休息｜下一局 ${fmtRest(series.restLeft)}`;if(isHost){restBroadcastAcc+=dt;if(restBroadcastAcc>=1){restBroadcastAcc=0;broadcast({type:'restTick',restLeft:series.restLeft});}if(series.restLeft<=0)startNextRoundHost();}}
 }
-openMulti.addEventListener('click',()=>{if(!canAccessPro())return;multiModal.style.display='flex';renderPlayerList();updateRoleAvailability();});closeMulti.addEventListener('click',()=>multiModal.style.display='none');hostRoom.addEventListener('click',hostMultiplayer);joinRoom.addEventListener('click',joinMultiplayer);
+openMulti.addEventListener('click',()=>{multiModal.style.display='flex';renderPlayerList();updateRoleAvailability();});closeMulti.addEventListener('click',()=>multiModal.style.display='none');hostRoom.addEventListener('click',hostMultiplayer);joinRoom.addEventListener('click',joinMultiplayer);
 readyBtn.addEventListener('click',()=>{if(!updateRoleAvailability()){netStatus.textContent='⛔ 目前角色席位已被占用，請先改選可用角色。';return;}localReady=!localReady;readyBtn.textContent=localReady?'取消準備':'我已準備';updateProfileNet()});
 [playerName,netTeam,netRole].forEach(el=>el.addEventListener('change',updateProfileNet));[seriesBestOf,roundMinutes,restMinutes].forEach(el=>el.addEventListener('change',()=>{if(isHost){seriesConfigFromUI();broadcast({type:'seriesConfig',series:{...series,wins:{...series.wins},history:[...series.history]}});updateSeriesUI()}}));
 startSeries.addEventListener('click',startSeriesHost);closeResult.addEventListener('click',()=>seriesOverlay.style.display='none');
 
-setMode('free'); setView('third'); viewport.focus();
+setMode('free');
+setView('third');
+if(checkoutLocked){
+  appShell.inert=true;
+  proDialog.showModal();
+}else{
+  viewport.focus({preventScroll:true});
+}
 // === V14.0 Web Audio 輕量撞擊合成音效 ===
 let audioCtx = null;
 function playImpactSound(intensity = 1) {
@@ -1636,7 +1635,7 @@ impact = function(d, imp, label) {
 
 // 鍵盤 Z 快捷鍵重置無人機
 window.addEventListener('keydown', e => {
-  if (e.repeat) return;
+  if (e.repeat || checkoutLocked) return;
   const tag = (e.target?.tagName || '').toUpperCase();
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
   if (e.key === 'z' || e.key === 'Z') {
@@ -1649,7 +1648,7 @@ function animate(){
  try{
    const rawDelta = clock3.getDelta();
    const frameTime = Math.min(0.1, rawDelta);
-   accumulator += frameTime;
+   if(!checkoutLocked)accumulator += frameTime;
 
    while (accumulator >= FIXED_STEP) {
      updatePlayer(FIXED_STEP);
